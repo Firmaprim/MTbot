@@ -1,5 +1,5 @@
 from random import *
-
+#test
 def compteBon():
     nbTuiles = 6
     
