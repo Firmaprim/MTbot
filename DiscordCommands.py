@@ -17,7 +17,7 @@ bot = commands.Bot(command_prefix='&', description='Bot Mathraining, merci aux g
 #____________________CONSTANTES_______________________________
 
 token = 'SECRET'
-
+valid_id = ["341619103896698892", "165728264554414081", "196705023772721153", "368050653118988292", "277155466432348160", "355047830571843584"]
 NomsRoles = ["Grand Maitre", "Maitre", "Expert", "Chevronné", "Expérimenté", "Qualifié", "Compétent", "Initié", "Débutant", "Novice"]
 colors = {'Novice' : 0x888888, 'Débutant' : 0x08D508, 'Débutante' : 0x08D508, 'Initié' : 0x008800, 'Initiée' : 0x008800,
           'Compétent' : 0x00BBEE, 'Compétente' : 0x00BBEE, 'Qualifié' : 0x0033FF, 'Qualifiée' : 0x0033FF, 'Expérimenté' : 0xDD77FF,
@@ -337,7 +337,8 @@ async def update(user: Member):
 @bot.command()
 async def verify(user: Member, idMT: int):
     """Lie le compte d'un utilisateur au bot (ajoute son id MT dans le canal Info-bot) """
-
+    if not (str(message.author.id) in valid_id):
+        return
     await bot.add_roles(user, get(user.server.roles, name = "Vérifié") )
     await bot.send_message(canalInfoBot, str(user.mention)+ " " + str(idMT))
 
