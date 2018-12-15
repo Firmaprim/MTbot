@@ -33,6 +33,14 @@ nonRattachee = "Cette personne n'est pas rattachée à un compte Mathraining.\nT
 canalDemandeBot = Object(id="448029413272190986")
 canalInfoBot = Object(id="448105204349403137")
 canalGeneral = Object(id="430291539449872384")
+canalTestBot = Object(id="447444845892599826")
+user = 1416
+problem = 14527
+exo = 102311
+point = 930930
+debut = 0 #cf la fonction background_tasks_mt
+dernierResolu = [None]*5
+
 
 
 #_________________Fonctions_Annexes____________________
@@ -74,6 +82,7 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
+    bot.loop.create_task(background_tasks_mt())
     await bot.change_presence(game=Game(name="Mathraining | &help"))
 
 @bot.event
@@ -84,9 +93,14 @@ async def on_member_join(member):
 
 @bot.event
 async def on_message(message):
-    if message.author.name == "mtbot":
-        return
-
+    #if message.author.name == "mtbot":
+    #    return
+    if message.content.startswith('&say') and str(message.author.id) in valid_id:
+        contenu = message.content.split()
+        msg = ""
+        for i in range(1, len(contenu)):
+            msg += contenu[i]+" "
+        await bot.send_message(canalGeneral, msg)
     if '#' in message.content:
         msg = message.content.split()
         for i in msg:
@@ -386,7 +400,75 @@ async def verify(user: Member, idMT: int):
     except:
         await bot.say("Une erreur a été rencontrée, contactez un admin [Erreur VERIFY]")
 
+async def background_tasks_mt():
+    global dernierResolu, user, problem, exo, point, debut #debut permet que les messages ne s'affichent pas 
+                                            #si le bot se relance
+    while True:
+        changement = 0
+        url = "http://www.mathraining.be/"
+        req = requests.get(url)
+        response = req.text #on récupère le code source de la page
+        soup = BeautifulSoup(response, "lxml")
+        info = soup.find_all('td',attrs={"class":u"left"})
+        msg = ""
+        if int(info[0].getText()) != user and int(info[0].getText())%10==0:
+            msg += "Oh ! Il y a maintenant " + info[0].getText() + " utilisateurs sur Mathraining !\n"
+            changement+=1
+        else:
+            msg += "Il y a " + info[0].getText() + " utilisateurs sur Mathraining.\n"
+        user = int(info[0].getText())
 
+        if int(info[1].getText()) != problem and int(info[1].getText())%100==0:
+            msg += "Oh ! Il y a maintenant " + info[1].getText() + " problèmes résolus !\n"
+            changement+=1
+        else:
+            msg += "Il y a " + info[1].getText() + " problèmes résolus\n"
+        problem = int(info[1].getText())
+
+        if int(info[2].getText()) != exo and int(info[2].getText())%1000==0:
+            msg += "Oh ! Il y a maintenant " + info[2].getText() + " exercices résolus !\n"
+            changement+=1
+        else:
+            msg += "Il y a " + info[2].getText() + " exercices résolus.\n"
+        exo = int(info[2].getText())
+
+        if int(info[3].getText()) != point and int(info[3].getText())%1000==0:
+            msg += "Oh ! Il y a maintenant " + info[3].getText() + " points distribués !"
+            changement+=1
+        else:
+            msg += "Il y a " + info[3].getText() + " points distribués."
+        point = int(info[3].getText())
+
+        if debut == 0: #si debut vaut 0, alors le bot viens d'etre lancer, ne rien afficher    
+            print("le bot vient juste d'etre lancé")
+        elif changement != 0:
+            await bot.send_message(canalGeneral, msg)  
+
+
+
+        url = "http://www.mathraining.be/solvedproblems"
+        req = requests.get(url)
+        response = req.text #on récupère le code source de la page
+        soup = BeautifulSoup(response, "html.parser")
+        cible = soup.find_all('tr')
+        level = 1
+        for i in range(0, len(cible)):
+            td = BeautifulSoup(str(cible[i]), "lxml").find_all('td')
+            if len(td) > 3:
+                #print(td[3].getText().replace(" ", ""))
+                if (td[3].getText().replace(" ", "")[4]).isdigit() and int(td[3].getText().replace(" ", "")[4]) == level:
+                    msg = td[2].getText() + " vient juste de résoudre le problème " + td[3].getText().replace(" ", "").replace("\n", "") + " "
+                    if dernierResolu[level-1] != msg:
+                        print(msg)
+                        dernierResolu[level-1] = msg
+                        if debut != 0:
+                            await bot.send_message(canalGeneral, msg)   
+                    level += 1
+                    if level == 6:
+                        break
+        #print("fini")
+        debut = 1
+        await sleep(20)
 
 
 
@@ -412,5 +494,5 @@ async def help(ctx):
 
 #______________________________________________________________
 
-
-bot.run(token) #Token MT
+#bot.loop.create_task(background_tasks_mt())
+bot.run("token") #Token MT
