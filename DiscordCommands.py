@@ -87,8 +87,7 @@ async def on_ready():
 
 @bot.event
 async def on_member_join(member):
-    fmt = 'Bienvenue '+ member.mention + " ! Pense à lier ton compte Mathraining avec la commande &ask." + \
-    "Tape &help pour en savoir plus sur le bot."
+    fmt = 'Bienvenue '+ member.mention + " ! Pense à lier ton compte Mathraining avec la commande &ask. Si tu as des problèmes avec cette commande tape &help pour en savoir plus sur le bot ou vas faire un tour dans #présentation-serv. :wink:"
     await bot.send_message( canalGeneral ,fmt)
 
 @bot.event
