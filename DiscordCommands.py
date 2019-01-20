@@ -34,6 +34,7 @@ canalDemandeBot = Object(id="448029413272190986")
 canalInfoBot = Object(id="448105204349403137")
 canalGeneral = Object(id="430291539449872384")
 canalTestBot = Object(id="447444845892599826")
+canalRecyclage = Object(id="430295677910908928")
 user = 1416
 problem = 14527
 exo = 102311
@@ -87,7 +88,8 @@ async def on_ready():
 
 @bot.event
 async def on_member_join(member):
-    fmt = 'Bienvenue '+ member.mention + " ! Pense à lier ton compte Mathraining avec la commande &ask. Si tu as des problèmes avec cette commande tape &help pour en savoir plus sur le bot ou vas faire un tour dans #présentation-serv. :wink:"
+    fmt = 'Bienvenue '+ member.mention + " ! Pense à lier ton compte Mathraining avec la commande &ask." + \
+    "Tape &help pour en savoir plus sur le bot."
     await bot.send_message( canalGeneral ,fmt)
 
 @bot.event
@@ -305,6 +307,11 @@ async def solved(user: Member, idpb: int):
     except:
         await bot.say("Une erreur a été rencontrée, contactez un admin [Erreur SOLVED]")
 
+@bot.command()
+async def makeloose(user: Member):
+    await bot.send_message(user, "***42***")
+    await bot.say(user.mention + " a perdu, quel dommage !") 
+
 
 @bot.command()
 async def update(user: Member):
@@ -461,7 +468,7 @@ async def background_tasks_mt():
                         print(msg)
                         dernierResolu[level-1] = msg
                         if debut != 0:
-                            await bot.send_message(canalGeneral, msg)   
+                            await bot.send_message(canalRecyclage, msg)   
                     level += 1
                     if level == 6:
                         break
@@ -494,4 +501,4 @@ async def help(ctx):
 #______________________________________________________________
 
 #bot.loop.create_task(background_tasks_mt())
-bot.run(token) #Token MT
+bot.run("MT") #Token MT
