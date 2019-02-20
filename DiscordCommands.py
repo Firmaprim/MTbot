@@ -160,43 +160,14 @@ async def correction():
         soup = BeautifulSoup(response, "lxml")
         corrections = soup.find_all('td', attrs={"style":u"text-align:center;"})
         #print(corrections)
-        msg = ""
+        correcteurs = soup.find_all('a',{"href":re.compile(r"/users/.*")})
         embed = Embed(title="Corrections", color=0xFF4400)
 
         for loop in range(0, len(corrections), 2):
             msg = ""
             msg2 = ""
             if corrections[loop+1].getText() != "0":
-                if loop == 0:
-                    msg += "Corentin Bodart: "
-                if loop == 2:
-                    msg += "Nicolas Radu: "
-                if loop == 4:
-                    msg += "Rémy Lesbats: "
-                if loop == 6:
-                    msg += "Cédric Pilatte: "
-                if loop == 8:
-                    msg += "Damien Galant: "
-                if loop == 10:
-                    msg += "Thomas Humbert: "
-                if loop == 12:
-                    msg += "Damien Lefèvre: "
-                if loop == 14:
-                    msg += "Cédric De Groote: "
-                if loop == 16:
-                    msg += "Philippe Alphonse: "
-                if loop == 18:
-                    msg += "Hoan-Phung Bui: "
-                if loop == 20:
-                    msg += "Raphael Ducatez: "
-                if loop == 22:
-                    msg += "François Staelens: "
-                if loop == 24:
-                    msg += "Rodrigue Haya Enriquez: "
-                if loop == 26:
-                    msg += "Errol Yuksel: "
-                if loop == 28:
-                    msg += "Paul Cahen: "
+                msg = correcteurs[loop//2].getText()
                 msg2 = corrections[loop].getText() + " corrections dont " +corrections[loop+1].getText() + " les deux dernières semaines.\n"
                 embed.add_field(name=msg, value=msg2, inline=False)
         await bot.say(embed=embed)
@@ -210,7 +181,7 @@ async def hi():
 
 @bot.command()
 async def info(user: Member):
-    """Affiche les stats d'un utilisateur lie"""
+    """Affiche les stats d'un utilisateur lié"""
     try:
         idMT = 0
 
@@ -445,7 +416,7 @@ async def background_tasks_mt():
             msg += "Il y a " + info[3].getText() + " points distribués."
         point = int(info[3].getText())
 
-        if debut == 0: #si debut vaut 0, alors le bot viens d'etre lancer, ne rien afficher    
+        if debut == 0: #si debut vaut 0, alors le bot viens d'etre lancé, ne rien afficher    
             print("le bot vient juste d'etre lancé")
         elif changement != 0:
             await bot.send_message(canalGeneral, msg)  
@@ -485,13 +456,13 @@ async def help(ctx):
         embed = Embed(title="Mathraining bot", type="rich", description="Préfixe avant les commandes : &.", color=0xEEE657)
 
         embed.add_field(name="info @utilisateur", value="Donne le score et le rang Mathraining de l'utilisateur mentionné.", inline=False)
-        embed.add_field(name="update @utilisateur", value="Pour mettre a jour son rang.", inline=False)
+        embed.add_field(name="update @utilisateur", value="Pour mettre à jour son rang.", inline=False)
         embed.add_field(name="solved @utilisateur numPb", value="Indique si le problème numéro numPb a été résolu par l'utilisateur.", inline=False)
         embed.add_field(name="ask @utilisateur idMathraining", value="Pour demander à rattacher votre compte Mathraining:" +
         " idMathraining (idMathraining est le nombre dans l'url de votre page de profil sur le site).", inline=False)
         embed.add_field(name="correction", value="Affiche la liste des correcteurs et leurs contributions.", inline=False)
         embed.add_field(name="rand a b", value="Donne un nombre aléatoire entre a et b.", inline=False)
-        embed.add_field(name="compte + 6 nombres", value="Effectue un tirage si aucun nombre n'est donné, résoud le tirage sinon", inline=False)
+        embed.add_field(name="compte + 6 nombres", value="Effectue un tirage si aucun nombre n'est donné, résout le tirage sinon", inline=False)
         embed.add_field(name="help", value="Affiche ce message en MP.", inline=False)
 
         await bot.send_message(ctx.message.author,embed=embed)
