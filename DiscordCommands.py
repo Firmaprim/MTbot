@@ -153,7 +153,7 @@ async def compte(result = 0):
 
 
 @bot.command()
-async def correction():
+async def corrections(switch=""):
     """Affiche la liste des correcteurs et leurs nombres de corrections"""
     try:
         req = requests.get("http://www.mathraining.be/correctors")
@@ -167,13 +167,13 @@ async def correction():
         for loop in range(0, len(corrections), 2):
             msg = ""
             msg2 = ""
-            if corrections[loop+1].getText() != "0":
+            if corrections[loop+1].getText() != "0" or switch == "all":
                 msg = correcteurs[loop//2].getText()
                 msg2 = corrections[loop].getText() + " corrections dont " +corrections[loop+1].getText() + " les deux dernières semaines.\n"
                 embed.add_field(name=msg, value=msg2, inline=False)
         await bot.say(embed=embed)
     except:
-        await bot.say("Une erreur a été rencontrée, contactez un admin [Erreur CORRECTION]")
+        await bot.say("Une erreur a été rencontrée, contactez un admin [Erreur CORRECTIONS]")
 
 @bot.command()
 async def hi():
