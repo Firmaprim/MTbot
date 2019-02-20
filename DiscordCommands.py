@@ -461,7 +461,7 @@ async def help(ctx):
         embed.add_field(name="solved @utilisateur numPb", value="Indique si le problème numéro numPb a été résolu par l'utilisateur.", inline=False)
         embed.add_field(name="ask @utilisateur idMathraining", value="Pour demander à rattacher votre compte Mathraining:" +
         " idMathraining (idMathraining est le nombre dans l'url de votre page de profil sur le site).", inline=False)
-        embed.add_field(name="correction", value="Affiche la liste des correcteurs et leurs contributions.", inline=False)
+        embed.add_field(name="corrections (all)", value="Affiche la liste des correcteurs (qui ont corrigé récemment ou pas avec "all") et leurs contributions.", inline=False)
         embed.add_field(name="rand a b", value="Donne un nombre aléatoire entre a et b.", inline=False)
         embed.add_field(name="compte + 6 nombres", value="Effectue un tirage si aucun nombre n'est donné, résout le tirage sinon", inline=False)
         embed.add_field(name="help", value="Affiche ce message en MP.", inline=False)
