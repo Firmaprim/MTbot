@@ -91,38 +91,7 @@ async def on_member_join(member):
     fmt = 'Bienvenue '+ member.mention + " ! Pense à lier ton compte Mathraining avec la commande &ask. " + \
     "Si tu as des problèmes avec cette commande tape &help pour en savoir plus sur le bot ou vas faire un tour dans #présentation-serv. :wink:"
     await bot.send_message( canalGeneral ,fmt)
-
-@bot.event
-@@ -305,6 +307,11 @@ def roleScore(s):
-    except:
-        await bot.say("Une erreur a été rencontrée, contactez un admin [Erreur SOLVED]")
-
-@bot.command()
-async def play(user: Member):
-    await bot.send_message(user, "**42**")
-    await bot.say(user.mention + " a perdu, quel dommage !") 
-
-
-@bot.command()
-async def update(user: Member):
-@@ -461,7 +468,7 @@ def roleScore(s):
-                        print(msg)
-                        dernierResolu[level-1] = msg
-                        if debut != 0:
-                            await bot.send_message(canalGeneral, msg)   
-                            await bot.send_message(canalRecyclage, msg)   
-                    level += 1
-                    if level == 6:
-                        break
-@@ -494,4 +501,4 @@ def roleScore(s):
-#______________________________________________________________
-
-#bot.loop.create_task(background_tasks_mt())
-bot.run(token) #Token MT
-bot.run("MT") #Token MT
-
-    await bot.send_message( canalGeneral ,fmt)
-
+          
 @bot.event
 async def on_message(message):
     #if message.author.name == "mtbot":
@@ -339,8 +308,8 @@ async def solved(user: Member, idpb: int):
         await bot.say("Une erreur a été rencontrée, contactez un admin [Erreur SOLVED]")
 
 @bot.command()
-async def makeloose(user: Member):
-    await bot.send_message(user, "***42***")
+async def play(user: Member):
+    await bot.send_message(user, "**42**")
     await bot.say(user.mention + " a perdu, quel dommage !") 
 
 
