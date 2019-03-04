@@ -1,4 +1,4 @@
-# MTbot: Travail Famille Patrie
+# MTbot : Travail Famille Patrie
 
 Code source du bot et guide suprême du Discord de Mathraining
 
