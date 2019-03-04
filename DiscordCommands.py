@@ -27,7 +27,7 @@ colors = {'Novice' : 0x888888, 'Débutant' : 0x08D508, 'Débutante' : 0x08D508, 
 
 
 
-nonRattachee = "Cette personne n'est pas rattachée à un compte Mathraining.\nTaper la commande &help pour plus d'informations."
+nonRattachee = "Cette personne n'est pas rattachée à un compte Mathraining. Tapez la commande &help pour plus d'informations."
 
 
 #id_des_Canaux
