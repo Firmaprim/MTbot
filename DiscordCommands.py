@@ -36,6 +36,7 @@ canalInfoBot = Object(id="448105204349403137")
 canalGeneral = Object(id="430291539449872384")
 canalTestBot = Object(id="447444845892599826")
 canalRecyclage = Object(id="430295677910908928")
+canalResolutions = Object(id="557951376429416455")
 user = 1416
 problem = 14527
 exo = 102311
@@ -440,7 +441,7 @@ async def background_tasks_mt():
                         print(msg)
                         dernierResolu[level-1] = msg
                         if debut != 0:
-                            await bot.send_message(canalRecyclage, msg)   
+                            await bot.send_message(canalResolutions, msg)   
                     level += 1
                     if level == 6:
                         break
