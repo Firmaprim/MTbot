@@ -91,7 +91,7 @@ async def on_ready():
 @bot.event
 async def on_member_join(member):
     fmt = 'Bienvenue '+ member.mention + " ! Pense à lier ton compte Mathraining avec la commande &ask. " + \
-    "Si tu as des problèmes avec cette commande tape &help pour en savoir plus sur le bot ou vas faire un tour dans #présentation-serv. :wink:"
+    "Si tu as des problèmes avec cette commande tape &help pour en savoir plus sur le bot ou vas faire un tour dans #règles. :wink:"
     await bot.send_message( canalGeneral ,fmt)
           
 @bot.event
@@ -129,7 +129,7 @@ async def ask(user: Member, idMTmt: int):
     '''Pour pouvoir utiliser le bot: ask @utilisateur idMathraining
     (idMathraining est le nombre dans l'url de votre page de profil sur le site)'''
     try:
-        msg = "-"*10 + "\nDemande de : " + str(user.mention) + ".\nid Mathraining : " + str(idMTmt) 
+        msg = "\n-------------\nDemande de : " + str(user.mention) + ".\nid Mathraining : " + str(idMTmt) 
         msg += "\nhttp://www.mathraining.be/users/"+ str(idMTmt)+ "\n-------------\n"
         await bot.send_message(canalDemandeBot, msg)
         await bot.say("Attendez la validation d'un administrateur.")
