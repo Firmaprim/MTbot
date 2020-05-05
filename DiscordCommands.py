@@ -6,15 +6,15 @@ import requests
 from bs4 import *
 from asyncio import *
 from re import compile
-from re import findall
 
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
 from random import randint
-from io import BytesIO
 
 import AnnexeCompteBon
+import AopsCore
+
 from traceback import format_exc
 
 description = 'Bot Mathraining.'
@@ -38,7 +38,7 @@ options.add_argument('-headless')
 
 idAdmin="430287978192044037"
 idModo="491291638233169931"
-erreur ="Une erreur a été rencontrée, contactez un Admin ou un Modérateur."
+errmsg ="Une erreur a été rencontrée, contactez un Admin ou un Modérateur."
 perms="Vous n'avez pas les permissions pour effectuer cette commande."
 
 #id_des_Canaux
@@ -46,6 +46,7 @@ canalInfoBot = Object(id="448105204349403137")
 canalEnAttente = Object(id="605001945924763648")
 canalGeneral = Object(id="430291539449872384")
 canalResolutions = Object(id="557951376429416455")
+canalLogsBot = Object(id="665532091622096927")
 
 user = 1416
 problem = 14527
@@ -107,7 +108,7 @@ async def FindMT(idMT: int,canal: object.Object = canalInfoBot) :
 def Connexion() :
     global driver
     #driver = webdriver.PhantomJS(executable_path=r'B:\downloads\MT\PJS\bin\phantomjs.exe')
-    driver = webdriver.Firefox(options=options,executable_path=r'B:\downloads\MT\geckodriver.exe')
+    driver = webdriver.Firefox(options=options)
     driver.get("https://mathraining.be")
     driver.find_element_by_link_text("Connexion").click()
 
@@ -123,11 +124,21 @@ def Deconnexion() :
     driver.find_element_by_xpath("//a[not(contains(text(), 'Théorie')) and not(contains(text(), 'Statistiques')) and not(contains(text(), 'Problèmes')) and @class='dropdown-toggle']").click()
     driver.find_element_by_link_text("Déconnexion").click()
     driver.quit()
+    
+async def erreur(e) :
+    err="- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -"+'\n'+format_exc()+"- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -";print(err)
+    err="```diff\n"+err+"```"
+    await bot.send_message(canalLogsBot,err)
+    await bot.say("**[Erreur "+e+']** '+"`"+errmsg+"`"+" **[Erreur "+e+']**')
+    e=Embed()
+    e.set_image(url="https://cdn.discordapp.com/attachments/515636703155847225/624856715766267905/Screenshot_20190921_083716.jpg")
+    await bot.say(embed=e)
 
 ##_________________________EVENT_______________________________________
 
 @bot.event
 async def on_ready():
+    print('------')
     print('Connecté sous')
     print(bot.user.name)
     print(bot.user.id)
@@ -171,14 +182,15 @@ async def ask(ctx,idMTnew: int):
     contact="Contactez un Admin ou un Modo si vous souhaitez changer de compte."
     user=ctx.message.author
     try:
+        msay=await bot.say("`Chargement en cours ...`")
         idMTold,idMTatt=(await FindUser(user)),(await FindUser(user,canalEnAttente))
         if idMTold == 0 and idMTatt == 0 :  
             Score=GetMTScore(idMTnew)
             UserId,UserIdatt = (await FindMT(idMTnew)),(await FindMT(idMTnew,canalEnAttente))
-            if UserId != 0 : await bot.say("Ce compte Mathraining appartient déjà à "+str(await bot.get_user_info(UserId))+" !")
-            elif UserIdatt != 0: await bot.say("Ce compte Mathraining a déjà été demandé à être relié par "+str(await bot.get_user_info(UserIdatt))+" !")
-            elif Score >= 3200 or Score == 1 : await bot.say("Le compte Mathraining renseigné est au moins Expert ou Administrateur, il faut demander à un Admin/Modo du serveur de vous relier !")
-            elif Score == 2 : await bot.say("Le compte Mathraining renseigné n'existe pas !")
+            if UserId != 0 : await bot.edit_message(msay,"Ce compte Mathraining appartient déjà à "+str(await bot.get_user_info(UserId))+" !")
+            elif UserIdatt != 0: await bot.edit_message(msay,"Ce compte Mathraining a déjà été demandé à être relié par "+str(await bot.get_user_info(UserIdatt))+" !")
+            elif Score >= 3200 or Score == 1 : await bot.edit_message(msay,"Le compte Mathraining renseigné est au moins Expert ou Administrateur, il faut demander à un Admin/Modo du serveur de vous relier !")
+            elif Score == 2 : await bot.edit_message(msay,"Le compte Mathraining renseigné n'existe pas !")
             else :
                 try :
                     Connexion()
@@ -189,15 +201,13 @@ async def ask(ctx,idMTnew: int):
                     driver.find_element_by_name("commit").click()
                     Deconnexion()
                     await bot.send_message(canalEnAttente, str(user.mention)+ " " + str(idMTnew))
-                    await bot.say("Vous venez de recevoir un message privé sur le site. Suivez les instructions demandées.")
-                except : await bot.say("Ce service est temporairement indisponible, veuillez réessayer plus tard.\n Vous pouvez toutefois demander à un Admin ou un Modérateur de vous relier manuellement.")
-        elif idMTold == idMTnew and idMTold != 0 : await bot.say("Vous êtes déjà relié au bot avec le même id !")
-        elif idMTatt == idMTnew and idMTatt !=0 : await bot.say("Vous avez déjà fait une demande avec le même id !")
-        elif idMTatt != idMTnew and idMTold ==0 : await bot.say("Vous avez déjà fait une demande avec l'id "+str(idMTatt)+".\n"+pascontent+"\n"+contact)
-        else : await bot.say("Vous êtes déjà relié au bot avec l'id "+str(idMTold)+".\n"+pascontent+"\n"+contact)
-    except Exception as exc :
-        print('-'*50);print(format_exc());print('-'*50)
-        await bot.say(erreur+" [Erreur ASK]")
+                    await bot.edit_message(msay,"Vous venez de recevoir un message privé sur le site. Suivez les instructions demandées.")
+                except : await bot.edit_message(msay,"Ce service est temporairement indisponible, veuillez réessayer plus tard.\n Vous pouvez toutefois demander à un Admin ou un Modérateur de vous relier manuellement.")
+        elif idMTold == idMTnew and idMTold != 0 : await bot.edit_message(msay,"Vous êtes déjà relié au bot avec le même id !")
+        elif idMTatt == idMTnew and idMTatt !=0 : await bot.edit_message(msay,"Vous avez déjà fait une demande avec le même id !")
+        elif idMTatt != idMTnew and idMTold ==0 : await bot.edit_message(msay,"Vous avez déjà fait une demande avec l'id "+str(idMTatt)+".\n"+pascontent+"\n"+contact)
+        else : await bot.edit_message(msay,"Vous êtes déjà relié au bot avec l'id "+str(idMTold)+".\n"+pascontent+"\n"+contact)
+    except Exception as exc : await erreur('ASK')
 
 @bot.command(pass_context=True)
 async def verify(ctx,user2: Member = None,idMT2: int = 0):
@@ -215,6 +225,7 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
             await bot.add_roles(user2, servRole)
             await bot.send_message(canalGeneral,"Un Administrateur/Modérateur a relié "+str(user2)+" au compte Mathraining d'id "+str(idMT2)+" ! Il obtient le rôle `"+role+"`. :clap:")
         elif idMT!=0 :                            ##Sinon ignore les autres arguments ...
+            msay=await bot.say("`Chargement en cours ...`")
             Connexion()
 
             driver.get("https://www.mathraining.be/discussions/new?qui="+str(idMT))
@@ -238,7 +249,7 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
                 servRole = get(user.server.roles, name = role )
                 
                 await bot.add_roles(user, servRole)
-                await bot.say("La demande de lien a été acceptée par le compte Mathraining ! Vous obtenez le rôle `"+role+"`! :clap:")
+                await bot.edit_message(msay,"La demande de lien a été acceptée par le compte Mathraining ! Vous obtenez le rôle `"+role+"`! :clap:")
             
             else :
                 msg="Les comptes Discord et Mathraining en question ne seront pas reliés."
@@ -246,16 +257,12 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
                 m.clear();m.send_keys(msg)
                 driver.find_element_by_name("commit").click()
                 Deconnexion()
-                await bot.say("La demande de lien a été refusée par le compte Mathraining.")
+                await bot.edit_message(msay,"La demande de lien a été refusée par le compte Mathraining.")
             
-        elif (await FindUser(user))!=0 :
-            await bot.say("Vous êtes déjà lié avec l'id "+str(await FindUser(user))+".")
-        else :
-            await bot.say("Vous n'avez fait aucune demande pour lier vos comptes Discord et Mathraining.")
+        elif (await FindUser(user))!=0 : await bot.edit_message(msay,"Vous êtes déjà lié avec l'id "+str(await FindUser(user))+".")
+        else : await bot.edit_message(msay,"Vous n'avez fait aucune demande pour lier vos comptes Discord et Mathraining.")
         
-    except Exception as exc :
-        print('-'*50);print(format_exc());print('-'*50)
-        await bot.say(erreur+" [Erreur VERIFY]")
+    except Exception as exc : await erreur('VERIFY')
 
 @bot.command(pass_context=True)
 async def update(ctx,user: Member = None):
@@ -285,15 +292,18 @@ async def update(ctx,user: Member = None):
                 await bot.say("Déjà à jour !")
         else:
             await bot.say(nonRattachee)
-    except Exception as exc :
-        print('-'*50);print(format_exc());print('-'*50)
-        await bot.say(erreur+" [Erreur UPDATE]")
+    except Exception as exc : await erreur('UPDATE')
 
 @bot.command(pass_context=True)
 async def info(ctx,user = None):
     """Affiche les stats d'un utilisateur lié"""
     try:
-        try : idMT = int(user)
+        try : 
+            num=int(user)
+            if len(user) <= 4 : idMT = num
+            else : 
+                user = commands.MemberConverter(ctx,user).convert()
+                idMT = (await FindUser(user))
         except : 
             if user == None : user = ctx.message.author
             else : user = commands.MemberConverter(ctx,user).convert()
@@ -334,16 +344,12 @@ async def info(ctx,user = None):
                     j+=1
                 pourcentage.append(''.join(stat))
 
-            for i in range(6):
-                embed.add_field(name=stats[i], value=pourcentage[i]+'%', inline=True)
+            for i in range(6): embed.add_field(name=stats[i], value=pourcentage[i]+'%', inline=True)
 
             await bot.say(embed=embed)
 
-        else:
-            await bot.say(nonRattachee)
-    except Exception as exc :
-        print('-'*50);print(format_exc());print('-'*50)
-        await bot.say(erreur+" [Erreur INFO]")
+        else: await bot.say(nonRattachee)
+    except Exception as exc : await erreur('INFO')
 
 @bot.command()
 async def corrections(switch=""):
@@ -361,9 +367,7 @@ async def corrections(switch=""):
                 msg2 = corrections[loop].getText() + " corrections dont " +corrections[loop+1].getText() + " les deux dernières semaines.\n"
                 embed.add_field(name=msg, value=msg2, inline=False)
         await bot.say(embed=embed)
-    except Exception as exc :
-        print('-'*50);print(format_exc());print('-'*50)
-        await bot.say(erreur+" [Erreur CORRECTIONS]")
+    except Exception as exc : await erreur('CORRECTIONS')
 
 @bot.command()
 async def solved(user: Member, idpb: int):
@@ -375,9 +379,7 @@ async def solved(user: Member, idpb: int):
             namepb = '#' + str(idpb)
             await bot.say("Problème"+[" non "," "][namepb in response]+"résolu par l'utilisateur.")
         else: await bot.say(nonRattachee)
-    except Exception as exc :
-        print('-'*50);print(format_exc());print('-'*50)
-        await bot.say(erreur+" [Erreur SOLVED]")
+    except Exception as exc : await erreur('SOLVED')
 
 @bot.command()
 async def hi():
@@ -412,20 +414,16 @@ async def compte(tuile: tuple = (-1,-1,-1,-1,-1,-1),trouver: int = -1,sols=1):
             if msg : embed.add_field( name = "Voici "+str(len(res))+" solution(s) choisie(s) au hasard :", value = msg, inline = False)
             else : embed.add_field( name = "Mince !", value = "Il n'y a pas de solution ...", inline = False)           
         await bot.say(embed=embed)
-    except Exception as exc :
-        print('-'*50);print(format_exc());print('-'*50)
-        await bot.say(erreur+" [Erreur COMPTE]")
+    except Exception as exc : await erreur('COMPTE')
      
 @bot.command()
 async def lettres():
     try:
-        tirage="Tuiles : " +Lettres()
+        tirage="Tuiles : " + " ".join(AnnexeCompteBon.Lettres())
         embed = Embed( title = "Le mot le plus long", color = 0xFF4400 )
         embed.add_field( name = "Tirage", value = tirage, inline = False)
         await bot.say(embed=embed)
-    except Exception as exc :
-        print('-'*50);print(format_exc());print('-'*50)
-        await bot.say(erreur+" [Erreur LETTRES]")  
+    except Exception as exc : await erreur('LETTRES')
 @bot.command()
 async def citation():
     try:
@@ -439,136 +437,13 @@ async def citation():
         embed.set_author(name="Citations Mathématiques")
         embed.set_footer(text=citation[-1])
         await bot.say(embed=embed)
-    except Exception as exc :
-        print('-'*50);print(format_exc());print('-'*50)
-        await bot.say(erreur+" [Erreur CITATION]")
+    except Exception as exc : await erreur('CITATION')
 
 @bot.command(pass_context = True)
 async def aops(ctx):
-    try:
-        driver = webdriver.Firefox(options=options,executable_path=r'B:\downloads\MT\geckodriver.exe')
-        #driver = webdriver.PhantomJS(executable_path=r'B:\downloads\MT\PJS\bin\phantomjs.exe')
-        #driver.set_window_position(-2000,0)
-        #driver.set_window_size(2560, 1600)
-        #driver.execute_script("document.body.style.zoom='250%'")
-        #driver.execute_script("document.body.style.webkitTransform = 'scale(1.5)'")
-        #driver.implicitly_wait(10)
-        urlinit="https://artofproblemsolving.com/community/c13_contest_collections";url=urlinit
-        msg = await bot.say("`Chargement en cours ...`")
-        driver.get(url);await sleep(2)
-        titres = [(i.text).split('\n')+['\u200b']*(2-len((i.text).split('\n'))) for i in driver.find_elements_by_class_name('cmty-category-cell-left') if i.text != '']
-        titre=titres[0][0];titres=titres[1:];l=len(titres);k=0
-        reactions=["🔙","◀","▶","1⃣","2⃣","3⃣","4⃣","5⃣","6⃣","7⃣","8⃣","9⃣","🔟","❌"]
-        while l :
-            embed = Embed(title=titre, colour=0x009fad)
-            liens =[i.find_element_by_css_selector('a').get_attribute('href') for i in driver.find_elements_by_class_name('cmty-category-cell-heading.cmty-cat-cell-top-legit')]
-            embed.set_footer(text="AoPS | Page "+str(k+1)+"/"+str((l-1)//10 +1)+" | Attendez que les réactions soient toutes présentes.")
-            for i in range(k*10,k*10+min(10,len(titres)-k*10)) : embed.add_field(name=str(i+1)+'. '+titres[i][0],value=titres[i][1],inline=False)
-            await bot.edit_message(msg,embed=embed)
-            await bot.edit_message(msg,"`Veuillez faire une sélection :`")
-            for r in reactions[:min(10,l-k*10)+3]+["❌"]*(10!=(l-k*10)) : await bot.add_reaction(msg,r)
-            reac = await bot.wait_for_reaction(reactions,message=msg,user=ctx.message.author,timeout=60)
-            if reac :
-                await bot.edit_message(msg,"`Chargement en cours ...`")
-                await bot.clear_reactions(msg)
-                for i in range(min(10,len(titres)-k*10)+3) : 
-                    if reac.reaction.emoji == "❌" :
-                        await bot.edit_message(msg,"`La requête a été annulée.`")
-                        await bot.clear_reactions(msg)
-                        await bot.edit_message(msg,embed=Embed(title='AoPS | Terminé', colour=0x009fad))
-                        driver.quit();return
-                    if reac.reaction.emoji == reactions[1] and k!=0 :
-                        k-=1;break
-                    if reac.reaction.emoji == reactions[2] and k<((l-1)//10) :
-                        k+=1;break  
-                    if reac.reaction.emoji == reactions[i] and reac.reaction.emoji not in reactions[1:3] : 
-                        if reac.reaction.emoji == reactions[0] :
-                            if not url==urlinit : 
-                                driver.back();url=driver.current_url
-                            else : break
-                        else : url = liens[k*10+i-3];driver.get(url)
-                        await sleep(2)
-                        last_height = driver.execute_script("return document.body.scrollHeight")
-                        while True: #CHARGER LA PAGE ENTIEREMENT EN SCROLLANT !!
-                            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                            await sleep(0.3);new_height = driver.execute_script("return document.body.scrollHeight")
-                            if new_height == last_height: break
-                            last_height = new_height
-                        titres = [(i.text).split('\n')+['\u200b']*(2-len((i.text).split('\n'))) for i in driver.find_elements_by_class_name('cmty-category-cell-left') if i.text != '']
-                        titre=titres[0][0];titres=titres[1:len(titres)-1*(url==urlinit)];l=len(titres);k=0 #Si url = urlinit on enlève le dernier pathologique
-                        break
-            else :
-                await bot.edit_message(msg,"`Aucune réponse depuis une minute. La requête a été abandonnée.`")
-                await bot.clear_reactions(msg)
-                await bot.edit_message(msg,embed=Embed(title='AoPS | Terminé', colour=0x009fad))
-                driver.quit();return
-        driver.execute_script("window.scrollTo(0, 0);")
-        #re.findall("\d+", 'Problem 10')
-        #https://artofproblemsolving.com/community/c389682_2016_china_second_round_olympiad ??????
-        #https://artofproblemsolving.com/community/c502938_2017_middle_european_mathematical_olympiad :(
-        #https://artofproblemsolving.com/community/c930482_2005_dutch_mathematical_olympiad
-        #https://artofproblemsolving.com/community/c681585_2018_imo
-        DescsParties = [(lambda x : '\u200b' if x==[] else x[0].text)(i.find_elements_by_class_name('cmty-view-post-item-text')) for i in driver.find_elements_by_class_name('cmty-view-posts-item') if i.find_elements_by_class_name('cmty-view-post-poster') == []] 
-
-        NumsParties = [(lambda x : '\u200b' if x==[] else x[0].text)(i.find_elements_by_class_name('cmty-view-post-item-label')) for i in driver.find_elements_by_class_name('cmty-view-posts-item') if i.find_elements_by_class_name('cmty-view-post-poster') == []]  
-        #Nums = [(lambda x : '\u200b' if x==[] else x[0].text)(i.find_elements_by_class_name('cmty-view-post-item-label')) for i in driver.find_elements_by_class_name('cmty-view-posts-item') if i.find_elements_by_class_name('cmty-view-post-poster') != []]
-
-        LesNums = [[(lambda x : '\u200b' if x==[] else findall("\d+",x[0].text)[0])(i.find_elements_by_class_name('cmty-view-post-item-label')),i.find_elements_by_class_name('cmty-view-post-poster') == []] for i in driver.find_elements_by_class_name('cmty-view-posts-item')]  #True ssi Partie
-        LesNums = list(filter(lambda x: x != ['\u200b', False], LesNums))
- 
-        Probs = [i.find_elements_by_class_name('cmty-view-post-item-text')[0] for i in driver.find_elements_by_class_name('cmty-view-posts-item') if i.text != '' and i.find_elements_by_class_name('cmty-view-post-item-label') != [] and i.find_elements_by_class_name('cmty-view-post-poster') != []]
-        #OtherProbs = [i.find_elements_by_class_name('cmty-view-post-item-text')[0] for i in driver.find_elements_by_class_name('cmty-view-posts-item') if i.text != '' and i.find_elements_by_class_name('cmty-view-post-item-label') == [] and i.find_elements_by_class_name('cmty-view-post-poster') != []]
-        
-        PartiesPos = [i for i in range(len(LesNums)) if LesNums[i][1] == True];PartiesPos+=[len(LesNums)]
-        selec=["_","_","_"]
-        reactions2=["0⃣","1⃣","2⃣","3⃣","4⃣","5⃣","6⃣","7⃣","8⃣","9⃣","✳","✅","❌"]
-        prob=await bot.say("`Le problème apparaîtra ici.`")
-        while reac.reaction.emoji != reactions2[-1] :
-            embed = Embed(title=titre+" | Votre sélection actuelle : "+selec[0]+"-"+selec[1]+selec[2],colour=0x009fad)
-            embed.set_footer(text="AoPS | Attendez que les réactions soient toutes présentes.")
-            for i in range(len(NumsParties)) : 
-                nbrs=''
-                for j in range(1,PartiesPos[i+1]-PartiesPos[i]) : nbrs+=LesNums[PartiesPos[i]+j][0]+' - '
-                embed.add_field(name="__"+str(i+1)+".__ `"+str(NumsParties[i])+"` _"+str(DescsParties[i])+"_",value=nbrs[:-3],inline=False) 
-            await bot.edit_message(msg,embed=embed)
-            await bot.edit_message(msg,"`Veuillez faire une sélection :`")
-            for r in reactions2 : await bot.add_reaction(msg,r)
-            reac = await bot.wait_for_reaction(reactions2,message=msg,user=ctx.message.author,timeout=5*60)
-            if reac :
-                await bot.edit_message(msg,"`Chargement en cours ...`")
-                await bot.clear_reactions(msg)
-                for i in range(len(reactions2)-1) :
-                    if reac.reaction.emoji == reactions2[10] : selec=['_','_','_'];break
-                    if reac.reaction.emoji == reactions2[11] and '_' not in selec : 
-                        try :
-                            img=BytesIO((Probs[PartiesPos[int(selec[0])-1]-int(selec[0])+int(selec[1]+selec[2])]).screenshot_as_png);img.name='problem.png'
-                            #f = open('mt1.png', 'wb')
-                            #f.write(Probs[5].screenshot_as_png)
-                            #f.close()
-                            await bot.delete_message(prob)
-                            prob=await bot.send_file(ctx.message.channel, img)
-                            break
-                        except : bot.edit_message(prob,"`Sélection invalide !`")
-                    if reac.reaction.emoji == reactions2[i] and '_' in selec and i<10 :
-                        if selec[0] == '_' : selec[0] = str(i)
-                        elif selec[1] == '_' : selec[1] = str(i)
-                        else : selec[2] = str(i)
-                        break           
-            else :
-                await bot.edit_message(msg,"`Aucune réponse depuis cinq minutes. La requête a été abandonnée.`")
-                await bot.clear_reactions(msg)
-                await bot.edit_message(msg,embed=Embed(title='AoPS | Terminé', colour=0x009fad))
-                driver.quit();return
-                   
-        await bot.edit_message(msg,"`La requête a été terminée.`")
-        await bot.clear_reactions(msg)
-        await bot.edit_message(msg,embed=Embed(title='AoPS | Terminé', colour=0x009fad))
-        driver.quit()
-        
-    except Exception as exc :
-        await bot.edit_message(msg,"`Erreur ...`")
-        print('-'*50);print(format_exc());print('-'*50)
-        await bot.say(erreur+" [Erreur AOPS]")
+    try: await AopsCore.aopscore(bot,ctx)
+    except Exception as exc : 
+        await erreur('AOPS')
         try : driver.quit()
         except : return
 
@@ -601,85 +476,85 @@ async def help(ctx):
 
         await bot.send_message(ctx.message.author,embed=embed)
     except Exception as exc :
-        print('-'*50);print(format_exc());print('-'*50)
+        err="[Erreur HELP] "+'-'*50+" [Erreur HELP]"+'\n'+format_exc()+"[Erreur HELP] "+'-'*50+" [Erreur HELP]";print(err)
+        await bot.send_message(canalLogsBot,err)
         await bot.say("Une erreur a été rencontrée, peut-être avez-vous bloqué les messages privés, ce qui empêche le bot de communiquer avec vous. Contactez un Admin ou un Modérateur. [Erreur HELP]")
 
 ##Tâches d'arrière-plan
 
 async def background_tasks_mt():
     global dernierResolu, user, problem, exo, point, debut #debut permet que les messages ne s'affichent pas 
-                                            #si le bot se relance
-    while True:
-        
-        #Chiffres remarquables
-        
-        changement = 0
-        url = "http://www.mathraining.be/"
-        req = requests.get(url)
-        response = req.text #on récupère le code source de la page
-        soup = BeautifulSoup(response, "lxml")
-        info = soup.find_all('td',attrs={"class":u"left"})
-        msg = ""
-        if int(info[0].getText()) != user and int(info[0].getText())%100==0:
-            msg += "Oh ! Il y a maintenant " + info[0].getText() + " utilisateurs sur Mathraining !\n"
-            changement+=1
-        else:
-            msg += "Il y a " + info[0].getText() + " utilisateurs sur Mathraining.\n"
-        user = int(info[0].getText())
-
-        if int(info[1].getText()) != problem and int(info[1].getText())%100==0:
-            msg += "Oh ! Il y a maintenant " + info[1].getText() + " problèmes résolus !\n"
-            changement+=1
-        else:
-            msg += "Il y a " + info[1].getText() + " problèmes résolus\n"
-        problem = int(info[1].getText())
-
-        if int(info[2].getText()) != exo and int(info[2].getText())%1000==0:
-            msg += "Oh ! Il y a maintenant " + info[2].getText() + " exercices résolus !\n"
-            changement+=1
-        else:
-            msg += "Il y a " + info[2].getText() + " exercices résolus.\n"
-        exo = int(info[2].getText())
-
-        if int(info[3].getText()) != point and int(info[3].getText())%1000==0:
-            msg += "Oh ! Il y a maintenant " + info[3].getText() + " points distribués !"
-            changement+=1
-        else:
-            msg += "Il y a " + info[3].getText() + " points distribués."
-        point = int(info[3].getText())
-
-        if debut == 0: #si debut vaut 0, alors le bot viens d'etre lancé, ne rien afficher    
-            print("Le bot vient juste d'être lancé")
-        elif changement != 0:
-            await bot.send_message(canalGeneral, msg)  
-
-        #Résolutions récentes
-
-        url = "http://www.mathraining.be/solvedproblems"
-        req = requests.get(url)
-        response = req.text #on récupère le code source de la page
-        soup = BeautifulSoup(response, "html.parser")
-        cible = soup.find_all('tr')
-        level = 1
-        for i in range(0, len(cible)):
-            td = BeautifulSoup(str(cible[i]), "lxml").find_all('td')
-            if len(td) > 3:
-                #print(td[3].getText().replace(" ", ""))
-                if (td[3].getText().replace(" ", "")[4]).isdigit() and int(td[3].getText().replace(" ", "")[4]) == level:
-                    msg = td[2].getText() + " vient juste de résoudre le problème " + td[3].getText().replace(" ", "").replace("\n", "") + " "
-                    if dernierResolu[level-1] != msg:
-                        print(msg)
-                        dernierResolu[level-1] = msg
-                        if debut != 0:
-                            await bot.send_message(canalResolutions, msg)   
-                    level += 1
-                    if level == 6:
-                        break
-        #print("fini")
-        debut = 1
-        await sleep(20)
-
+                                                           #si le bot se relance
+    await bot.wait_until_ready()
+    while not bot.is_closed :
+        try:
+            
+            #Chiffres remarquables
+            
+            changement = 0
+            url = "http://www.mathraining.be/"
+            req = requests.get(url)
+            response = req.text #on récupère le code source de la page
+            soup = BeautifulSoup(response, "lxml")
+            info = soup.find_all('td',attrs={"class":u"left"})
+            msg = ""
+            if int(info[0].getText()) != user and int(info[0].getText())%100==0:
+                msg += "Oh ! Il y a maintenant " + info[0].getText() + " utilisateurs sur Mathraining !\n"
+                changement+=1
+            else:
+                msg += "Il y a " + info[0].getText() + " utilisateurs sur Mathraining.\n"
+            user = int(info[0].getText())
+    
+            if int(info[1].getText()) != problem and int(info[1].getText())%100==0:
+                msg += "Oh ! Il y a maintenant " + info[1].getText() + " problèmes résolus !\n"
+                changement+=1
+            else:
+                msg += "Il y a " + info[1].getText() + " problèmes résolus\n"
+            problem = int(info[1].getText())
+    
+            if int(info[2].getText()) != exo and int(info[2].getText())%1000==0:
+                msg += "Oh ! Il y a maintenant " + info[2].getText() + " exercices résolus !\n"
+                changement+=1
+            else:
+                msg += "Il y a " + info[2].getText() + " exercices résolus.\n"
+            exo = int(info[2].getText())
+    
+            if int(info[3].getText()) != point and int(info[3].getText())%1000==0:
+                msg += "Oh ! Il y a maintenant " + info[3].getText() + " points distribués !"
+                changement+=1
+            else:
+                msg += "Il y a " + info[3].getText() + " points distribués."
+            point = int(info[3].getText())
+    
+            if debut == 0: #si debut vaut 0, alors le bot viens d'etre lancé, ne rien afficher    
+                print("Le bot vient juste d'être lancé")
+            elif changement != 0:
+                await bot.send_message(canalGeneral, msg)  
+            
+            #Résolutions récentes
+    
+            url = "http://www.mathraining.be/solvedproblems"
+            soup = BeautifulSoup(requests.get(url).text, "html.parser")
+            cible = soup.find_all('tr');level = 1
+            for i in range(0, len(cible)):
+                td = BeautifulSoup(str(cible[i]), "lxml").find_all('td')
+                if len(td) > 3:
+                    #print(td[3].getText().replace(" ", ""))
+                    if (td[3].getText().replace(" ", "")[4]).isdigit() and int(td[3].getText().replace(" ", "")[4]) == level:
+                        msg = td[2].getText() + " vient juste de résoudre le problème " + td[3].getText().replace(" ", "").replace("\n", "") + " "
+                        if dernierResolu[level-1] != msg:
+                            print(msg)
+                            dernierResolu[level-1] = msg
+                            if debut != 0:
+                                await bot.send_message(canalResolutions, msg)   
+                        level += 1
+                        if level == 6:
+                            break
+            #print("fini")
+            debut = 1
+            await sleep(20)
+        except Exception as exc : continue
 #______________________________________________________________
 
-#bot.loop.create_task(background_tasks_mt())
+bot.loop.create_task(background_tasks_mt())
 bot.run(token) #Token MT
