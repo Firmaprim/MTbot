@@ -48,13 +48,6 @@ canalGeneral = Object(id="430291539449872384")
 canalResolutions = Object(id="557951376429416455")
 canalLogsBot = Object(id="665532091622096927")
 
-user = 1416
-problem = 14527
-exo = 102311
-point = 930930
-debut = 0 #cf la fonction background_tasks_mt
-dernierResolu = [None]*5
-
 ##_________________Fonctions_Annexes____________________
 
 def GetMTScore(idMT: int) :
@@ -475,9 +468,8 @@ async def help(ctx):
 
         await bot.send_message(ctx.message.author,embed=embed)
     except Exception as exc :
-        err="[Erreur HELP] "+'-'*50+" [Erreur HELP]"+'\n'+format_exc()+"[Erreur HELP] "+'-'*50+" [Erreur HELP]";print(err)
-        await bot.send_message(canalLogsBot,err)
-        await bot.say("Une erreur a été rencontrée, peut-être avez-vous bloqué les messages privés, ce qui empêche le bot de communiquer avec vous. Contactez un Admin ou un Modérateur. [Erreur HELP]")
+        erreur('HELP')
+        await bot.say("Peut-être avez-vous bloqué les messages privés, ce qui empêche le bot de communiquer avec vous.")
 
 ##Tâches d'arrière-plan
 
