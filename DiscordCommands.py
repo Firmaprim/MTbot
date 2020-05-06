@@ -107,7 +107,6 @@ async def FindMT(idMT: int,canal: object.Object = canalInfoBot) :
 
 def Connexion() :
     global driver
-    #driver = webdriver.PhantomJS(executable_path=r'B:\downloads\MT\PJS\bin\phantomjs.exe')
     driver = webdriver.Firefox(options=options)
     driver.get("https://mathraining.be")
     driver.find_element_by_link_text("Connexion").click()
@@ -483,56 +482,31 @@ async def help(ctx):
 ##Tâches d'arrière-plan
 
 async def background_tasks_mt():
-    global dernierResolu, user, problem, exo, point, debut #debut permet que les messages ne s'affichent pas 
-                                                           #si le bot se relance
+    debut=0
+    dernierResolu = [None]*5
     await bot.wait_until_ready()
     while not bot.is_closed :
         try:
-            
-            #Chiffres remarquables
-            
-            changement = 0
-            url = "http://www.mathraining.be/"
-            req = requests.get(url)
-            response = req.text #on récupère le code source de la page
-            soup = BeautifulSoup(response, "lxml")
+            #Chiffres remarquables 
+            soup = BeautifulSoup(requests.get("http://www.mathraining.be/").text,"lxml")
             info = soup.find_all('td',attrs={"class":u"left"})
-            msg = ""
-            if int(info[0].getText()) != user and int(info[0].getText())%100==0:
-                msg += "Oh ! Il y a maintenant " + info[0].getText() + " utilisateurs sur Mathraining !\n"
-                changement+=1
-            else:
-                msg += "Il y a " + info[0].getText() + " utilisateurs sur Mathraining.\n"
-            user = int(info[0].getText())
-    
-            if int(info[1].getText()) != problem and int(info[1].getText())%100==0:
-                msg += "Oh ! Il y a maintenant " + info[1].getText() + " problèmes résolus !\n"
-                changement+=1
-            else:
-                msg += "Il y a " + info[1].getText() + " problèmes résolus\n"
-            problem = int(info[1].getText())
-    
-            if int(info[2].getText()) != exo and int(info[2].getText())%1000==0:
-                msg += "Oh ! Il y a maintenant " + info[2].getText() + " exercices résolus !\n"
-                changement+=1
-            else:
-                msg += "Il y a " + info[2].getText() + " exercices résolus.\n"
-            exo = int(info[2].getText())
-    
-            if int(info[3].getText()) != point and int(info[3].getText())%1000==0:
-                msg += "Oh ! Il y a maintenant " + info[3].getText() + " points distribués !"
-                changement+=1
-            else:
-                msg += "Il y a " + info[3].getText() + " points distribués."
-            point = int(info[3].getText())
-    
-            if debut == 0: #si debut vaut 0, alors le bot viens d'etre lancé, ne rien afficher    
-                print("Le bot vient juste d'être lancé")
-            elif changement != 0:
-                await bot.send_message(canalGeneral, msg)  
+            nums=list(map(lambda t : t.getText(),info))
+            if debut == 0: print("Le bot vient juste d'être lancé !")
+            elif 0 in list(map(lambda x: int(x)%100,nums)) :
+                if nums[0] != user and int(nums[0])%100==0: msg = "Oh ! Il y a maintenant " + nums[0] + " utilisateurs sur Mathraining !🥳\n"
+                else: msg = "Il y a " + nums[0] + " utilisateurs sur Mathraining.\n"
+                user = nums[0]
+                if nums[1] != problem and int(nums[1])%100==0: msg += "Oh ! Il y a maintenant " + nums[1] + " problèmes résolus !🥳\n"
+                else: msg += "Il y a " + nums[1] + " problèmes résolus.\n"
+                problem = nums[1]
+                if nums[2] != exo and int(nums[2])%1000==0: msg += "Oh ! Il y a maintenant " + nums[2] + " exercices résolus !🥳\n"
+                else: msg += "Il y a " + nums[2] + " exercices résolus.\n"
+                exo = nums[2]
+                if nums[3] != point and int(nums[3])%1000==0: msg += "Oh ! Il y a maintenant " + nums[3] + " points distribués !🥳"
+                else: msg += "Il y a " + nums[3] + " points distribués."
+                point = nums[3]   
             
             #Résolutions récentes
-    
             soup = BeautifulSoup(requests.get("http://www.mathraining.be/solvedproblems").text, "html.parser")
             cible = soup.find_all('tr');level = 1
             for i in range(0, len(cible)):
@@ -546,8 +520,8 @@ async def background_tasks_mt():
                         level += 1
                         if level == 6: break
             debut = 1
-            await sleep(20)
-        except Exception as exc : continue
+            await sleep(10)
+        except Exception as exc : erreur('BACKGROUND');continue
 #______________________________________________________________
 
 bot.run(token) #Token MT
