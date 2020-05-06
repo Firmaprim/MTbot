@@ -533,28 +533,21 @@ async def background_tasks_mt():
             
             #Résolutions récentes
     
-            url = "http://www.mathraining.be/solvedproblems"
-            soup = BeautifulSoup(requests.get(url).text, "html.parser")
+            soup = BeautifulSoup(requests.get("http://www.mathraining.be/solvedproblems").text, "html.parser")
             cible = soup.find_all('tr');level = 1
             for i in range(0, len(cible)):
                 td = BeautifulSoup(str(cible[i]), "lxml").find_all('td')
                 if len(td) > 3:
-                    #print(td[3].getText().replace(" ", ""))
                     if (td[3].getText().replace(" ", "")[4]).isdigit() and int(td[3].getText().replace(" ", "")[4]) == level:
-                        msg = td[2].getText() + " vient juste de résoudre le problème " + td[3].getText().replace(" ", "").replace("\n", "") + " "
+                        msg = td[2].getText() + " vient juste de résoudre le problème " + td[3].getText().replace(" ", "").replace("\n", "")
                         if dernierResolu[level-1] != msg:
-                            print(msg)
-                            dernierResolu[level-1] = msg
-                            if debut != 0:
-                                await bot.send_message(canalResolutions, msg)   
+                            dernierResolu[level-1] = msg;
+                            if debut != 0: await bot.send_message(canalResolutions, msg);print(msg)
                         level += 1
-                        if level == 6:
-                            break
-            #print("fini")
+                        if level == 6: break
             debut = 1
             await sleep(20)
         except Exception as exc : continue
 #______________________________________________________________
 
-bot.loop.create_task(background_tasks_mt())
 bot.run(token) #Token MT
