@@ -495,6 +495,7 @@ async def background_tasks_mt():
                 if nums[3] != numsOld[3] and int(nums[3])%1000==0: msg += "Oh ! Il y a maintenant " + nums[3] + " points distribués !🥳"
                 else: msg += "Il y a " + nums[3] + " points distribués."
                 numsOld=nums
+                await bot.send_message(canalGeneral, msg)
             
             #Résolutions récentes
             soup = BeautifulSoup(requests.get("http://www.mathraining.be/solvedproblems").text, "html.parser")
