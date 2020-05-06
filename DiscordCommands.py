@@ -476,6 +476,7 @@ async def help(ctx):
 async def background_tasks_mt():
     debut=0
     dernierResolu = [None]*5
+    numsOld=[0]*4
     await bot.wait_until_ready()
     while not bot.is_closed :
         try:
@@ -485,18 +486,15 @@ async def background_tasks_mt():
             nums=list(map(lambda t : t.getText(),info))
             if debut == 0: print("Le bot vient juste d'être lancé !")
             elif 0 in list(map(lambda x: int(x)%100,nums)) :
-                if nums[0] != user and int(nums[0])%100==0: msg = "Oh ! Il y a maintenant " + nums[0] + " utilisateurs sur Mathraining !🥳\n"
+                if nums[0] != numsOld[0] and int(nums[0])%100==0: msg = "Oh ! Il y a maintenant " + nums[0] + " utilisateurs sur Mathraining !🥳\n"
                 else: msg = "Il y a " + nums[0] + " utilisateurs sur Mathraining.\n"
-                user = nums[0]
-                if nums[1] != problem and int(nums[1])%100==0: msg += "Oh ! Il y a maintenant " + nums[1] + " problèmes résolus !🥳\n"
+                if nums[1] != numsOld[1] and int(nums[1])%100==0: msg += "Oh ! Il y a maintenant " + nums[1] + " problèmes résolus !🥳\n"
                 else: msg += "Il y a " + nums[1] + " problèmes résolus.\n"
-                problem = nums[1]
-                if nums[2] != exo and int(nums[2])%1000==0: msg += "Oh ! Il y a maintenant " + nums[2] + " exercices résolus !🥳\n"
+                if nums[2] != numsOld[2] and int(nums[2])%1000==0: msg += "Oh ! Il y a maintenant " + nums[2] + " exercices résolus !🥳\n"
                 else: msg += "Il y a " + nums[2] + " exercices résolus.\n"
-                exo = nums[2]
-                if nums[3] != point and int(nums[3])%1000==0: msg += "Oh ! Il y a maintenant " + nums[3] + " points distribués !🥳"
+                if nums[3] != numsOld[3] and int(nums[3])%1000==0: msg += "Oh ! Il y a maintenant " + nums[3] + " points distribués !🥳"
                 else: msg += "Il y a " + nums[3] + " points distribués."
-                point = nums[3]   
+                numsOld=nums
             
             #Résolutions récentes
             soup = BeautifulSoup(requests.get("http://www.mathraining.be/solvedproblems").text, "html.parser")
