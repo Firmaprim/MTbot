@@ -485,7 +485,7 @@ async def background_tasks_mt():
             info = soup.find_all('td',attrs={"class":u"left"})
             nums=list(map(lambda t : t.getText(),info))
             if debut == 0: print("Le bot vient juste d'être lancé !")
-            elif 0 in list(map(lambda x: int(x)%100,nums)) :
+            elif numsOld != nums and (0 in list(map(lambda x: int(x)%100,nums[0:2])) or 0 in list(map(lambda x: int(x)%1000,nums[2:4]))) :
                 if nums[0] != numsOld[0] and int(nums[0])%100==0: msg = "Oh ! Il y a maintenant " + nums[0] + " utilisateurs sur Mathraining !🥳\n"
                 else: msg = "Il y a " + nums[0] + " utilisateurs sur Mathraining.\n"
                 if nums[1] != numsOld[1] and int(nums[1])%100==0: msg += "Oh ! Il y a maintenant " + nums[1] + " problèmes résolus !🥳\n"
