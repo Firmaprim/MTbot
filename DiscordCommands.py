@@ -48,6 +48,8 @@ canalGeneral = Object(id="430291539449872384")
 canalResolutions = Object(id="557951376429416455")
 canalLogsBot = Object(id="665532091622096927")
 
+dernierResolu = [None]*5
+
 ##_________________Fonctions_Annexes____________________
 
 def GetMTScore(idMT: int) :
@@ -475,7 +477,6 @@ async def help(ctx):
 
 async def background_tasks_mt():
     debut=0
-    dernierResolu = [None]*5
     numsOld=[0]*4
     await bot.wait_until_ready()
     while not bot.is_closed :
@@ -488,11 +489,11 @@ async def background_tasks_mt():
             elif numsOld != nums and (0 in list(map(lambda x: int(x)%100,nums[0:2])) or 0 in list(map(lambda x: int(x)%1000,nums[2:4]))) :
                 if nums[0] != numsOld[0] and int(nums[0])%100==0: msg = "Oh ! Il y a maintenant " + nums[0] + " utilisateurs sur Mathraining !🥳\n"
                 else: msg = "Il y a " + nums[0] + " utilisateurs sur Mathraining.\n"
-                if nums[1] != numsOld[1] and int(nums[1])%100==0: msg += "Oh ! Il y a maintenant " + nums[1] + " problèmes résolus !🥳\n"
+                if nums[1] != numsOld[1] and int(nums[1])%100==0: msg += "Oh ! Il y a maintenant " + nums[1] + " problèmes résolus ! 🥳\n"
                 else: msg += "Il y a " + nums[1] + " problèmes résolus.\n"
-                if nums[2] != numsOld[2] and int(nums[2])%1000==0: msg += "Oh ! Il y a maintenant " + nums[2] + " exercices résolus !🥳\n"
+                if nums[2] != numsOld[2] and int(nums[2])%1000==0: msg += "Oh ! Il y a maintenant " + nums[2] + " exercices résolus ! 🥳\n"
                 else: msg += "Il y a " + nums[2] + " exercices résolus.\n"
-                if nums[3] != numsOld[3] and int(nums[3])%1000==0: msg += "Oh ! Il y a maintenant " + nums[3] + " points distribués !🥳"
+                if nums[3] != numsOld[3] and int(nums[3])%1000==0: msg += "Oh ! Il y a maintenant " + nums[3] + " points distribués ! 🥳"
                 else: msg += "Il y a " + nums[3] + " points distribués."
                 numsOld=nums
                 await bot.send_message(canalGeneral, msg)
