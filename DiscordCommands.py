@@ -55,7 +55,7 @@ dernierResolu = [None]*5
 def GetMTScore(idMT: int) :
     soup = BeautifulSoup(requests.get("http://www.mathraining.be/users/"+str(idMT)).text,"lxml")  #on récupère le code source de la page
     htmlscore = soup.find_all('p',attrs={"style":u"font-size:24px; margin-top:20px;"}) #on recupere le bout de code avec le score
-    if htmlscore != [] : return int(htmlscore[0].getText()[8:]) #On enlève le 'Score : ' de 'Score : 1234'
+    if htmlscore != [] : return int(htmlscore[0].getText().split()[2]) #On ne garde que le score de "Score : 1234 - Rang : 567"
     try :
         if (soup.find_all('h1', limit = 1)[0].getText().split('-')[-1])[1:-1] == "Administrateur" : return 1 #Administrateur
         else : return 0 #Personne n'ayant aucun point
