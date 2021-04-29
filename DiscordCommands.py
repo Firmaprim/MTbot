@@ -17,12 +17,16 @@ import AopsCore
 
 from traceback import format_exc
 
+intents = Intents.default()
+intents.members = True
+
 description = 'Bot Mathraining.'
-bot = commands.Bot(command_prefix='&', description='Bot Mathraining, merci aux génialissimes créateurs !')
+bot = commands.Bot(command_prefix='&', description='Bot Mathraining, merci aux génialissimes créateurs !',intents=intents)
 
 #____________________CONSTANTES_______________________________
 
-token = 'SECRET!'         
+token = 'SECRET'
+
 NomsRoles = ["Grand Maitre", "Maitre", "Expert", "Chevronné", "Expérimenté", "Qualifié", "Compétent", "Initié", "Débutant", "Novice"]
 
 colors = {'Novice' : 0x888888, 'Débutant' : 0x08D508, 'Débutante' : 0x08D508, 'Initié' : 0x008800, 'Initiée' : 0x008800,
@@ -30,7 +34,7 @@ colors = {'Novice' : 0x888888, 'Débutant' : 0x08D508, 'Débutante' : 0x08D508, 
           'Expérimentée' : 0xDD77FF, 'Chevronné' : 0xA000A0, 'Chevronnée' : 0xA000A0, 'Expert' : 0xFFA000, 'Experte' : 0xFFA000,
           'Maître' : 0xFF4400, 'Grand Maître' : 0xCC0000}
 
-nonRattachee = "Cette personne n'est pas rattachée à un compte Mathraining.\nTaper la commande &help pour plus d'informations."
+nonRattachee = "Cette personne n'est pas rattachée à un compte Mathraining.\nTaper la commande `&help` pour plus d'informations."
 
 #Firefox-headless
 options = webdriver.FirefoxOptions()
@@ -41,25 +45,19 @@ idModo="491291638233169931"
 errmsg ="Une erreur a été rencontrée, contactez un Admin ou un Modérateur."
 perms="Vous n'avez pas les permissions pour effectuer cette commande."
 
-#id_des_Canaux
-canalInfoBot = Object(id="448105204349403137")
-canalEnAttente = Object(id="605001945924763648")
-canalGeneral = Object(id="430291539449872384")
-canalResolutions = Object(id="557951376429416455")
-canalLogsBot = Object(id="665532091622096927")
-
 dernierResolu = [None]*5
 
 ##_________________Fonctions_Annexes____________________
 
 def GetMTScore(idMT: int) :
     soup = BeautifulSoup(requests.get("http://www.mathraining.be/users/"+str(idMT)).text,"lxml")  #on récupère le code source de la page
-    htmlscore = soup.find_all('p',attrs={"style":u"font-size:24px; margin-top:20px;"}) #on recupere le bout de code avec le score
-    if htmlscore != [] : return int(htmlscore[0].getText().split()[2]) #On ne garde que le score de "Score : 1234 - Rang : 567"
-    try :
-        if (soup.find_all('h1', limit = 1)[0].getText().split('-')[-1])[1:-1] == "Administrateur" : return 1 #Administrateur
+    try : 
+        htmlscore = soup.find_all('td', limit = 5)
+        if htmlscore != [] : return int(htmlscore[4].getText().strip())
+        else : return 2 #Identifiant non attribué
+    except : 
+        if htmlscore[1].getText().strip() == "Administrateur" : return 1 #Administrateur
         else : return 0 #Personne n'ayant aucun point
-    except : return 2 #Identifiant non attribué
 
 def roleScore(s):
     """Renvoie le role correspondant au score"""
@@ -79,9 +77,10 @@ def roleScore(s):
         return role
     except: return -1
 
-async def FindUser(user: Member,canal: object.Object = canalInfoBot) :
+async def FindUser(user: Member,canal) :
         idMT = 0
-        async for message in bot.logs_from(canal, limit=1000):
+        if user == None : return 0
+        async for message in canal.history(limit=1000):
             msg = message.content.split()
             e1=[2,3][user.mention[2]=='!']
             e2=[2,3][msg[0][2]=='!']
@@ -90,9 +89,9 @@ async def FindUser(user: Member,canal: object.Object = canalInfoBot) :
                 break
         return idMT #0 si n'est pas dans la liste
 
-async def FindMT(idMT: int,canal: object.Object = canalInfoBot) :
+async def FindMT(idMT: int, canal) :
         user = 0; test= str(idMT)
-        async for message in bot.logs_from(canal, limit=1000):
+        async for message in canal.history(limit=1000):
             msg = message.content.split()
             if msg[1] == test:
                 e2=[2,3][msg[0][2]=='!']
@@ -105,7 +104,6 @@ def Connexion() :
     driver = webdriver.Firefox(options=options)
     driver.get("https://mathraining.be")
     driver.find_element_by_link_text("Connexion").click()
-
     username = driver.find_element_by_id("tf1")
     username.clear();username.send_keys("SECRET")
     
@@ -119,14 +117,15 @@ def Deconnexion() :
     driver.find_element_by_link_text("Déconnexion").click()
     driver.quit()
     
-async def erreur(e) :
+async def erreur(e,ctx=None) :
     err="- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -"+'\n'+format_exc()+"- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -";print(err)
     err="```diff\n"+err+"```"
-    await bot.send_message(canalLogsBot,err)
-    await bot.say("**[Erreur "+e+']** '+"`"+errmsg+"`"+" **[Erreur "+e+']**')
-    e=Embed()
-    e.set_image(url="https://cdn.discordapp.com/attachments/515636703155847225/624856715766267905/Screenshot_20190921_083716.jpg")
-    await bot.say(embed=e)
+    await canalLogsBot.send(err)
+    if ctx:
+        await ctx.send("**[Erreur "+e+']** '+"`"+errmsg+"`"+" **[Erreur "+e+']**')
+        e=Embed()
+        e.set_image(url="https://cdn.discordapp.com/attachments/515636703155847225/624856715766267905/Screenshot_20190921_083716.jpg")
+        await ctx.send(embed=e)
 
 ##_________________________EVENT_______________________________________
 
@@ -137,14 +136,27 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-    bot.loop.create_task(background_tasks_mt())
-    await bot.change_presence(game=Game(name="Mathraining | &help"))
+    global serveur
+    global canalInfoBot
+    global canalEnAttente
+    global canalGeneral
+    global canalResolutions
+    global canalLogsBot
+    serveur = bot.get_guild(430287489664548884)
+    canalInfoBot = serveur.get_channel(448105204349403137)
+    canalEnAttente = serveur.get_channel(605001945924763648)
+    canalGeneral = serveur.get_channel(430291539449872384)
+    canalResolutions = serveur.get_channel(557951376429416455)
+    canalLogsBot = serveur.get_channel(665532091622096927)
+    
+    #bot.loop.create_task(background_tasks_mt())  (Pas encore réparé ...)
+    await bot.change_presence(activity=Game(name="Mathraining | &help"))
 
 @bot.event
 async def on_member_join(member):
-    fmt = 'Bienvenue '+ member.mention + " ! Pense à lier ton compte Mathraining avec la commande &ask. \n" + \
-    "Si tu as des problèmes avec cette commande tape &help pour en savoir plus sur le bot ou va faire un tour dans #règles. :wink:"
-    await bot.send_message( canalGeneral ,fmt)
+    fmt = 'Bienvenue '+ member.mention + " ! Pense à lier ton compte Mathraining avec la commande `&ask`. \n" + \
+    "Si tu as des problèmes avec cette commande tape `&help` pour en savoir plus sur le bot ou va faire un tour dans <#726480900644143204>. :wink:" 
+    await canalGeneral.send(fmt)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
           
 @bot.event
 async def on_message(message):
@@ -163,7 +175,7 @@ async def on_message(message):
                             urlPb = url; break
             if urlPb:
                 aEnvoyer = "Problème " + str(numeroPb) + " : http://www.mathraining.be/problems/" + str(urlPb)
-                await bot.send_message(message.channel, aEnvoyer )
+                await message.channel.send(aEnvoyer )
     await bot.process_commands(message)
 
 ##_____________________COMMANDES___________________________________
@@ -176,32 +188,33 @@ async def ask(ctx,idMTnew: int):
     contact="Contactez un Admin ou un Modo si vous souhaitez changer de compte."
     user=ctx.message.author
     try:
-        msay=await bot.say("`Chargement en cours ...`")
-        idMTold,idMTatt=(await FindUser(user)),(await FindUser(user,canalEnAttente))
+        msay=await ctx.send("`Chargement en cours ...`")
+        idMTold,idMTatt=(await FindUser(user, canalInfoBot)),(await FindUser(user,canalEnAttente))
         if idMTold == 0 and idMTatt == 0 :  
             Score=GetMTScore(idMTnew)
-            UserId,UserIdatt = (await FindMT(idMTnew)),(await FindMT(idMTnew,canalEnAttente))
-            if UserId != 0 : await bot.edit_message(msay,"Ce compte Mathraining appartient déjà à "+str(await bot.get_user_info(UserId))+" !")
-            elif UserIdatt != 0: await bot.edit_message(msay,"Ce compte Mathraining a déjà été demandé à être relié par "+str(await bot.get_user_info(UserIdatt))+" !")
-            elif Score >= 3200 or Score == 1 : await bot.edit_message(msay,"Le compte Mathraining renseigné est au moins Expert ou Administrateur, il faut demander à un Admin/Modo du serveur de vous relier !")
-            elif Score == 2 : await bot.edit_message(msay,"Le compte Mathraining renseigné n'existe pas !")
+            UserId,UserIdatt = (await FindMT(idMTnew, canalInfoBot)),(await FindMT(idMTnew,canalEnAttente))
+            if UserId != 0 : await msay.edit(content="Ce compte Mathraining appartient déjà à "+str(bot.get_user(UserId))+" !")
+            elif UserIdatt != 0: await msay.edit(content="Ce compte Mathraining a déjà été demandé à être relié par "+str(bot.get_user(UserIdatt))+" !")
+            elif Score >= 3200 or Score == 1 : await msay.edit(content="Le compte Mathraining renseigné est au moins Expert ou Administrateur, il faut demander à un Admin/Modo du serveur de vous relier !")
+            elif Score == 2 : await msay.edit(content="Le compte Mathraining renseigné n'existe pas !")
             else :
                 try :
                     Connexion()
                     driver.get("https://www.mathraining.be/discussions/new?qui="+str(idMTnew)) #Sélectionne automatiquement la personne dans les messages.
-                    msg="Bonjour !  :-)\n\n Vous avez bien demandé à relier votre compte mathraining avec le compte Discord [b]"+str(user)+"[/b] sur le [url=https://www.mathraining.be/subjects/365?q=0]serveur Mathraining[/url] ?\n Répondez [b]\"Oui\"[/b] (sans aucun ajout) à ce message pour confirmer votre demande, sinon par défaut vous ne serez pas relié. \n Vous devez ensuite taper la commande [b]&verify[/b] sur Discord pour finaliser la demande.\n\n [b]Seul le dernier message de cette conversation sera lu pour confirmer votre demande.[/b] \n[i][u]NB[/u] : Il s'agit d'un message automatique. N'espérez pas communiquer avec ce compte Mathraining.\n (A vrai dire, j'ai activé le service sur mon compte pour l'instant. Vous pouvez tout de même me parler ou me signaler un bug ...)[/i]"
+                    msg="Bonjour !  :-)\n\n Vous avez bien demandé à relier votre compte mathraining avec le compte Discord [b]"+str(user)+"[/b] sur le [url=https://www.mathraining.be/subjects/365?q=0]serveur Mathraining[/url] ?\n Répondez [b]\"Oui\"[/b] (sans aucun ajout) à ce message pour confirmer votre demande, sinon par défaut vous ne serez pas relié. \n Vous devez ensuite taper la commande [b]&verify[/b] sur Discord pour finaliser la demande.\n\n [b]Seul le dernier message de cette conversation sera lu pour confirmer votre demande.[/b] \n[i][u]NB[/u] : Il s'agit d'un message automatique. N'espérez pas communiquer avec ce compte Mathraining.\n[/i]"
+                    #supprimé : (A vrai dire, j'ai activé le service sur mon compte pour l'instant. Vous pouvez tout de même me parler ou me signaler un bug ...)
                     m = driver.find_element_by_id("MathInput")
                     m.clear();m.send_keys(msg)
                     driver.find_element_by_name("commit").click()
                     Deconnexion()
-                    await bot.send_message(canalEnAttente, str(user.mention)+ " " + str(idMTnew))
-                    await bot.edit_message(msay,"Vous venez de recevoir un message privé sur le site. Suivez les instructions demandées.")
-                except : await bot.edit_message(msay,"Ce service est temporairement indisponible, veuillez réessayer plus tard.\n Vous pouvez toutefois demander à un Admin ou un Modérateur de vous relier manuellement.")
-        elif idMTold == idMTnew and idMTold != 0 : await bot.edit_message(msay,"Vous êtes déjà relié au bot avec le même id !")
-        elif idMTatt == idMTnew and idMTatt !=0 : await bot.edit_message(msay,"Vous avez déjà fait une demande avec le même id !")
-        elif idMTatt != idMTnew and idMTold ==0 : await bot.edit_message(msay,"Vous avez déjà fait une demande avec l'id "+str(idMTatt)+".\n"+pascontent+"\n"+contact)
-        else : await bot.edit_message(msay,"Vous êtes déjà relié au bot avec l'id "+str(idMTold)+".\n"+pascontent+"\n"+contact)
-    except Exception as exc : await erreur('ASK')
+                    await canalEnAttente.send(str(user.mention)+ " " + str(idMTnew))
+                    await msay.edit(content="Vous venez de recevoir un message privé sur le site. Suivez les instructions demandées.")
+                except : await msay.edit(content="Ce service est temporairement indisponible, veuillez réessayer plus tard.\n Vous pouvez toutefois demander à un Admin ou un Modérateur de vous relier manuellement.")
+        elif idMTold == idMTnew and idMTold != 0 : await msay.edit(content="Vous êtes déjà relié au bot avec le même id !")
+        elif idMTatt == idMTnew and idMTatt !=0 : await msay.edit(content="Vous avez déjà fait une demande avec le même id !")
+        elif idMTatt != idMTnew and idMTold ==0 : await msay.edit(content="Vous avez déjà fait une demande avec l'id "+str(idMTatt)+".\n"+pascontent+"\n"+contact)
+        else : await msay.edit(content="Vous êtes déjà relié au bot avec l'id "+str(idMTold)+".\n"+pascontent+"\n"+contact)
+    except Exception as exc : await erreur('ASK',ctx)
 
 @bot.command(pass_context=True)
 async def verify(ctx,user2: Member = None,idMT2: int = 0):
@@ -209,84 +222,83 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
     try: 
         user=ctx.message.author
         idMT=(await FindUser(user,canalEnAttente))
+        msay = await ctx.send("`Chargement en cours ...`")
+        
         if user2 != None and ("Admin" or "Modo") in [y.name for y in user.roles] :  ##Si admin ou modo ...
             #await bot.add_roles(user, get(user2.server.roles, name = "Vérifié") )
-            await bot.send_message(canalInfoBot, str(user2.mention)+ " " + str(idMT2))
-    
-            role = roleScore(GetMTScore(idMT2))
-            servRole = get(user2.server.roles, name = role)
-            
-            await bot.add_roles(user2, servRole)
-            await bot.send_message(canalGeneral,"Un Administrateur/Modérateur a relié "+str(user2)+" au compte Mathraining d'id "+str(idMT2)+" ! Il obtient le rôle `"+role+"`. :clap:")
-        elif idMT!=0 :                            ##Sinon ignore les autres arguments ...
-            msay=await bot.say("`Chargement en cours ...`")
-            Connexion()
-
-            driver.get("https://www.mathraining.be/discussions/new?qui="+str(idMT))
-            
-            if driver.find_element_by_xpath("//*[contains(@id, 'normal')]").text[:-20] == 'Oui' :##Si c'est 'Oui', c'est bon ! (En fait prend le premier avec un id avec 'normal')
-                msg="Vos comptes Discord et Mathraining sont désormais reliés !"
-                m = driver.find_element_by_id("MathInput")
-                m.clear();m.send_keys(msg)
-                driver.find_element_by_name("commit").click()
-                Deconnexion()
-                
-                await bot.send_message(canalInfoBot, str(user.mention)+ " " + str(idMT))
-                
-                async for message in bot.logs_from(canalEnAttente, limit=1000):
-                    msg = message.content.split()
-                    e1,e2=[2,3][user.mention[2]=='!'],[2,3][msg[0][2]=='!']
-                    if msg[0][e2:-1] == user.mention[e1:-1]: 
-                        await bot.delete_message(message);break
-                        
-                role = roleScore(GetMTScore(idMT))
-                servRole = get(user.server.roles, name = role )
-                
-                await bot.add_roles(user, servRole)
-                await bot.edit_message(msay,"La demande de lien a été acceptée par le compte Mathraining ! Vous obtenez le rôle `"+role+"`! :clap:")
-            
-            else :
-                msg="Les comptes Discord et Mathraining en question ne seront pas reliés."
-                m = driver.find_element_by_id("MathInput")
-                m.clear();m.send_keys(msg)
-                driver.find_element_by_name("commit").click()
-                Deconnexion()
-                await bot.edit_message(msay,"La demande de lien a été refusée par le compte Mathraining.")
-            
-        elif (await FindUser(user))!=0 : await bot.edit_message(msay,"Vous êtes déjà lié avec l'id "+str(await FindUser(user))+".")
-        else : await bot.edit_message(msay,"Vous n'avez fait aucune demande pour lier vos comptes Discord et Mathraining.")
+            if (await FindUser(user2,canalInfoBot)) == 0 :
+                await canalInfoBot.send(str(user2.mention)+ " " + str(idMT2))
         
-    except Exception as exc : await erreur('VERIFY')
+                role = roleScore(GetMTScore(idMT2))
+                servRole = get(serveur.roles, name = role)
+                await user2.add_roles(servRole)
+                
+                await canalGeneral.send("Un Administrateur/Modérateur a relié "+str(user2)+" au compte Mathraining d'id "+str(idMT2)+" ! Il obtient le rôle `"+role+"`. :clap:")
+                await msay.delete()
+            else : await msay.edit(content=str(user2)+ " est déjà lié avec l'id "+str(await FindUser(user2,canalInfoBot))+".")
+            
+        elif idMT!=0 :                            ##Sinon ignore les autres arguments ...
+            try :
+                Connexion()
+                driver.get("https://www.mathraining.be/discussions/new?qui="+str(idMT))
+                
+                if driver.find_element_by_xpath("//*[contains(@id, 'normal')]").text[:-20] in ['Oui','oui'] :##Si c'est 'Oui', c'est bon ! (En fait prend le premier avec un id avec 'normal')
+                    msg="Vos comptes Discord et Mathraining sont désormais reliés !"
+                    m = driver.find_element_by_id("MathInput")
+                    m.clear();m.send_keys(msg)
+                    driver.find_element_by_name("commit").click()
+                    Deconnexion()
+                    
+                    await canalInfoBot.send(str(user.mention)+ " " + str(idMT))
+                    
+                    async for message in canalEnAttente.history(limit=1000):
+                        msg = message.content.split()
+                        e1,e2=[2,3][user.mention[2]=='!'],[2,3][msg[0][2]=='!']
+                        if msg[0][e2:-1] == user.mention[e1:-1]: 
+                            await message.delete();break
+                            
+                    role = roleScore(GetMTScore(idMT))
+                    servRole = get(serveur.roles, name = role)
+                    await user.add_roles(servRole)
+                    
+                    await msay.edit(content="La demande de lien a été acceptée par le compte Mathraining ! Vous obtenez le rôle `"+role+"`! :clap:")
+                else :
+                    msg="Les comptes Discord et Mathraining en question ne seront pas reliés."
+                    m = driver.find_element_by_id("MathInput")
+                    m.clear();m.send_keys(msg)
+                    driver.find_element_by_name("commit").click()
+                    Deconnexion()
+                    await msay.edit(content="La demande de lien a été refusée par le compte Mathraining.")
+            except : await msay.edit(content="Ce service est temporairement indisponible, veuillez réessayer plus tard.\n Vous pouvez toutefois demander à un Admin ou un Modérateur de vous relier manuellement.")
+            
+        elif (await FindUser(user,canalInfoBot))!=0 : await msay.edit(content="Vous êtes déjà lié avec l'id "+str(await FindUser(user,canalInfoBot))+".")
+        else : await msay.edit(content="Vous n'avez fait aucune demande pour lier vos comptes Discord et Mathraining.")
+        
+    except Exception as exc : await erreur('VERIFY',ctx)
 
 @bot.command(pass_context=True)
 async def update(ctx,user: Member = None):
     '''Pour mettre à jour son/ses roles'''
     try:
         if user == None : user = ctx.message.author
-        idMT=(await FindUser(user))
+        idMT=(await FindUser(user,canalInfoBot))
 
         if idMT != 0:
             role = roleScore(GetMTScore(idMT))
-            if role == -1: await bot.say("Une erreur a été rencontrée, contactez un admin [Erreur ROLESCORE]"); return #Si le site change de façon de fonctionner
+            if role == -1: await erreur('ROLESCORE',ctx); return 
             
-            roles=user.roles    
-            #print(role)
-            for roleMembre in roles: #On récupère le (ou les) rôle(s) MT que l'utilisateur a.
-                #print(roleMembre.name)
-                if roleMembre.name in NomsRoles and roleMembre.name != role :
-                    await bot.remove_roles(user, roleMembre)
-                    
             roles=user.roles
-            #print([r.name for r in roles])
+            for roleMembre in roles:
+                if roleMembre.name in NomsRoles and roleMembre.name != role : await user.remove_roles(roleMembre)
+            
             if role not in [r.name for r in roles] :
-                await bot.add_roles(user, get(user.server.roles, name = role ))
-                if user == ctx.message.author : await bot.say("Bravo, vous obtenez le rôle `"+role+"`! :clap:")
-                else : await bot.say(str(user)+" obtient désormais le rôle `"+role+"`! :clap:")
-            else :
-                await bot.say("Déjà à jour !")
-        else:
-            await bot.say(nonRattachee)
-    except Exception as exc : await erreur('UPDATE')
+                roles=user.roles; await user.add_roles(get(serveur.roles, name = role))
+                if user == ctx.message.author : await ctx.send("Bravo, vous obtenez le rôle `"+role+"`! :clap:")
+                else : await ctx.send(str(user)+" obtient désormais le rôle `"+role+"`! :clap:")
+            else : await ctx.send("Déjà à jour !")
+                
+        else: await ctx.send(nonRattachee)
+    except Exception as exc : await erreur('UPDATE',ctx)
 
 @bot.command(pass_context=True)
 async def info(ctx,user = None):
@@ -296,99 +308,82 @@ async def info(ctx,user = None):
             num=int(user)
             if len(user) <= 4 : idMT = num
             else : 
-                user = commands.MemberConverter(ctx,user).convert()
-                idMT = (await FindUser(user))
+                user = get(ctx.guild.members, name=user)
+                idMT = (await FindUser(user,canalInfoBot))
         except : 
-            if user == None : user = ctx.message.author
-            else : user = commands.MemberConverter(ctx,user).convert()
-            idMT = (await FindUser(user))
+            if user == None :
+                user = ctx.message.author
+            else :
+                user = get(ctx.guild.members, name=user)
+            idMT = (await FindUser(user,canalInfoBot))
         if idMT != 0:
             url="http://www.mathraining.be/users/"+str(idMT)
             soup = BeautifulSoup(requests.get(url).text, "lxml")
-            htmlscore = soup.find_all('p', limit = 1) #on recupere le bout de code avec le score 
-            #(attrs={"style":u"font-size:24px; margin-top:(20 si score !=0 60 sinon)px;"})
-            nameuser = soup.find_all('h1', limit = 1)
-            avancement = soup.find_all('div', attrs={"class":u"progress-bar"})
+            try : Infos=list(filter(None,[soup.find_all('td', limit = 39)[i].getText().strip() for i in range(39)]))
+            except : 
+                if GetMTScore(idMT) == 2 : await ctx.send(content="Le compte Mathraining renseigné n'existe pas !");return
+                else : 
+                    Infos=list(filter(None,[soup.find_all('td', limit = 3)[i].getText().strip() for i in range(3)]))
+                    embed = Embed(title=Infos[0] + " - " + Infos[1], url=url, description="Membre n°"+str(idMT))
+                    await ctx.send(embed=embed);return
 
-            #print(avancement)
-            #print(nameuser, nameuser[0].getText())
-            #print(htmlscore[0].getText())
+            embed = Embed(title=Infos[0] + " - " + Infos[1], url=url, description="Membre n°"+str(idMT)+3*' '+"Rang : "+Infos[6]+"  Top  "+Infos[8]+(7-len(Infos[6]+Infos[8]))*' ' +" <:gold:836978754454028338> : "+Infos[9]+" <:silver:836978754433319002> : "+Infos[10]+" <:bronze:836978754467135519> : "+Infos[11]+" <:mh:836978314387259442> : "+Infos[12], color=colors[Infos[1]])
+            embed.add_field(name="Score : ", value=Infos[4], inline=True)
+            embed.add_field(name="Exercices résolus : ", value=''.join(Infos[14].split()), inline=True)
+            embed.add_field(name="Problèmes résolus : ", value=''.join(Infos[16].split()), inline=True)
+            for i in range(6): embed.add_field(name=Infos[17+2*i]+' :', value=Infos[18+2*i], inline=True)
 
-            username = ''.join(nameuser[0].getText().split('-')[:-1])[:-1]
-            rank = (nameuser[0].getText().split('-')[-1])[1:-1]
-            stats = ["Combinatoire :", "Géométrie :", "Théorie des nombres :", "Algèbre :", "Équations Fonctionnelles :", "Inégalités :"]
-
-            #print("$"+avancement[1].getText()+"$")
-
-            if avancement[1].getText() == "\n":
-                nbpbsolved = "0/153"
-            else:
-                nbpbsolved = avancement[1].getText()[1:-1]
-            embed = Embed(title=username + " - " + rank, url=url, description="Membre n°"+str(idMT), color=colors[rank])
-            embed.add_field(name="Score : ", value=htmlscore[0].getText().split()[2], inline=True)
-            embed.add_field(name="Exercices résolus : ", value=avancement[0].getText(), inline=True)
-            embed.add_field(name="Problèmes résolus : ", value=nbpbsolved, inline=True)
-            pourcentage = []
-            for i in range(2, 8):
-                chaine=avancement[i]['style'][6:]
-                j = 0
-                stat=[]
-                while chaine[j]!='.':
-                    stat.append(chaine[j])
-                    j+=1
-                pourcentage.append(''.join(stat))
-
-            for i in range(6): embed.add_field(name=stats[i], value=pourcentage[i]+'%', inline=True)
-
-            await bot.say(embed=embed)
-
-        else: await bot.say(nonRattachee)
-    except Exception as exc : await erreur('INFO')
+            await ctx.send(embed=embed)
+            #Penser à rajouter les pays à l'avenir ...
+        else: await ctx.send(nonRattachee)
+    except Exception as exc : await erreur('INFO',ctx)
 
 @bot.command()
-async def corrections(switch=""):
+async def corrections(ctx,switch=""):
     """Affiche la liste des correcteurs et leurs nombres de corrections"""
     try:
         soup = BeautifulSoup(requests.get("http://www.mathraining.be/correctors").text, "lxml")
         corrections = soup.find_all('td', attrs={"style":u"text-align:center;"})
-        correcteurs = soup.find_all('a',{"href":compile(r"/users/.*")})
-        embed = Embed(title="Corrections", color=0xFF4400)
-
-        for loop in range(0, len(corrections), 2):
-            msg,msg2 = "",""
+        correcteurs = soup.find_all('a',{"href":compile(r"/users/.*")})[30:]
+        msg=''
+        for loop in range(0, len(corrections),2):
             if corrections[loop+1].getText() != "0" or switch == "all":
-                msg = correcteurs[loop//2].getText()
-                msg2 = corrections[loop].getText() + " corrections dont " +corrections[loop+1].getText() + " les deux dernières semaines.\n"
-                embed.add_field(name=msg, value=msg2, inline=False)
-        await bot.say(embed=embed)
-    except Exception as exc : await erreur('CORRECTIONS')
+                n=len(correcteurs[loop//2].getText())
+                m=len(corrections[loop].getText())
+                msg+='**'+correcteurs[loop//2].getText().strip()+' :** '+(30-n)*' '+corrections[loop].getText() +(7-m)*" " +corrections[loop+1].getText() + "\n"
+        embed = Embed(title="Corrections ( ... corrections dont ... les deux dernières semaines) : ", color=0xFF4400,description = msg[0:2047])
+        #Petit bug sur les espaces que j'arrive pas à gérer ... + Mettre de plus gros espaces pour économiser les caractères
+        #cf. https://emptycharacter.com/ (en fait je crois qu'il y a pas plus gros ...)
+        await ctx.send(embed=embed)
+    except Exception as exc : await erreur('CORRECTIONS',ctx)
 
 @bot.command()
-async def solved(user: Member, idpb: int):
+async def solved(ctx, user: Member, idpb: int):
     """Indique si le problème numéro numPb a été résolu par l'utilisateur"""
     try:
-        idMT=(await FindUser(user))
+        idMT=(await FindUser(user,canalInfoBot))
         if idMT != 0:
             response = requests.get("http://mathraining.be/users/" + str(idMT)).text
             namepb = '#' + str(idpb)
-            await bot.say("Problème"+[" non "," "][namepb in response]+"résolu par l'utilisateur.")
-        else: await bot.say(nonRattachee)
-    except Exception as exc : await erreur('SOLVED')
+            await ctx.send("Problème"+[" non "," "][namepb in response]+"résolu par l'utilisateur.")
+        else: await ctx.send(nonRattachee)
+    except Exception as exc : await erreur('SOLVED',ctx)
 
 @bot.command()
-async def hi():
-    await bot.say("Salut ! Comment vas-tu ?")
+async def hi(ctx):
+    await ctx.send("Salut ! Comment vas-tu ?")
     
 @bot.command(pass_context = True)
 async def say(ctx,*args):
-    if ("Admin" or "Modo") in [y.name for y in ctx.message.author.roles] :
+    
+    if ("Admin" or "Modo") in [y.name for y in serveur.get_member(ctx.message.author.id).roles] :
         msg = ""
         for i in range(len(args)): msg += args[i]+" " #le dernier espace ne va pas être pris en compte sur discord. hm ...
-        await bot.send_message(canalGeneral, msg)
-    else : await bot.say(perms)
+        await canalGeneral.send(msg)
+    else : await ctx.send(perms)
     
 @bot.command()
-async def compte(tuile: tuple = (-1,-1,-1,-1,-1,-1),trouver: int = -1,sols=1):
+async def compte(ctx, tuile: tuple = (-1,-1,-1,-1,-1,-1),trouver: int = -1,sols=1):
     try:
         if (tuile,trouver,sols) == ((-1,-1,-1,-1,-1,-1),-1,1) :
             resultat,tuiles = AnnexeCompteBon.compteBon()
@@ -407,19 +402,19 @@ async def compte(tuile: tuple = (-1,-1,-1,-1,-1,-1),trouver: int = -1,sols=1):
             embed = Embed( title = "Le compte est bon", color = 0xFF4400 )
             if msg : embed.add_field( name = "Voici "+str(len(res))+" solution(s) choisie(s) au hasard :", value = msg, inline = False)
             else : embed.add_field( name = "Mince !", value = "Il n'y a pas de solution ...", inline = False)           
-        await bot.say(embed=embed)
-    except Exception as exc : await erreur('COMPTE')
+        await ctx.send(embed=embed)
+    except Exception as exc : await erreur('COMPTE',ctx)
      
 @bot.command()
-async def lettres():
+async def lettres(ctx):
     try:
         tirage="Tuiles : " + " ".join(AnnexeCompteBon.Lettres())
         embed = Embed( title = "Le mot le plus long", color = 0xFF4400 )
         embed.add_field( name = "Tirage", value = tirage, inline = False)
-        await bot.say(embed=embed)
-    except Exception as exc : await erreur('LETTRES')
+        await ctx.send(embed=embed)
+    except Exception as exc : await erreur('LETTRES',ctx)
 @bot.command()
-async def citation():
+async def citation(ctx):
     try:
         soup = BeautifulSoup(requests.get("http://math.furman.edu/~mwoodard/www/data.html").text, "lxml") #Penser à modifier la source soi-même ?
         bout = str(soup.find_all('p')[randint(0,756)]).replace("<br/>", "\n") 
@@ -430,24 +425,24 @@ async def citation():
         embed = Embed(title=citation[0], colour=0x964b00, description='_'+c+'_')
         embed.set_author(name="Citations Mathématiques")
         embed.set_footer(text=citation[-1])
-        await bot.say(embed=embed)
-    except Exception as exc : await erreur('CITATION')
+        await ctx.send(embed=embed)
+    except Exception as exc : await erreur('CITATION',ctx)
 
 @bot.command(pass_context = True)
 async def aops(ctx):
     try: await AopsCore.aopscore(bot,ctx)
     except Exception as exc : 
-        await erreur('AOPS')
+        await erreur('AOPS',ctx)
         try : driver.quit()
         except : return
 
 @bot.command(pass_context = True)
 async def oops(ctx,*args):
-    await bot.add_reaction(ctx.message,'😅')
+    await ctx.message.add_reaction('😅')
     
 @bot.command(pass_context = True)
 async def trivial(ctx,*args):
-    await bot.add_reaction(ctx.message,'😒')    
+    await ctx.message.add_reaction('😒')
     
 bot.remove_command('help')
 @bot.command(pass_context = True)
@@ -463,15 +458,15 @@ async def help(ctx):
         embed.add_field(name="corrections (all)", value="Affiche la liste des correcteurs (qui ont corrigé récemment ou pas avec \"all\") et leurs contributions.", inline=False)
         embed.add_field(name="solved utilisateur numPb", value="Indique si le problème numéro numPb a été résolu par l'utilisateur.", inline=False)
         embed.add_field(name="hi", value="Permet d'effectuer un ping avec le bot.", inline=False)
-        embed.add_field(name="compte (a,b,c,d,e,f NbrSolutions)", value="Effectue un tirage si aucun argument n'est donné, résout le tirage sinon.", inline=False)
+        embed.add_field(name="compte (a,b,c,d,e,f ÀTrouver NbrSolutions)", value="Effectue un tirage si aucun argument n'est donné, résout le tirage sinon.", inline=False)
         embed.add_field(name="citation", value="Affiche une citation mathématique au hasard.\n Source : [Furman University, Mathematical Quotations Server](http://math.furman.edu/~mwoodard/mquot.html)", inline=False)
         embed.add_field(name="aops", value="Permet d'avoir accès aux problèmes AoPS et les afficher.", inline=False)
         embed.add_field(name="help", value="Affiche ce message en MP.", inline=False)
 
-        await bot.send_message(ctx.message.author,embed=embed)
+        await (ctx.message.author).send(embed=embed)
     except Exception as exc :
-        erreur('HELP')
-        await bot.say("Peut-être avez-vous bloqué les messages privés, ce qui empêche le bot de communiquer avec vous.")
+        await erreur('HELP',ctx)
+        await ctx.send("Peut-être avez-vous bloqué les messages privés, ce qui empêche le bot de communiquer avec vous.")
 
 ##Tâches d'arrière-plan
 
@@ -496,7 +491,7 @@ async def background_tasks_mt():
                 if nums[3] != numsOld[3] and int(nums[3])%1000==0: msg += "Oh ! Il y a maintenant " + nums[3] + " points distribués ! 🥳"
                 else: msg += "Il y a " + nums[3] + " points distribués."
                 numsOld=nums
-                await bot.send_message(canalGeneral, msg)
+                await canalGeneral.send(msg)
             
             #Résolutions récentes
             soup = BeautifulSoup(requests.get("http://www.mathraining.be/solvedproblems").text, "html.parser")
@@ -507,13 +502,14 @@ async def background_tasks_mt():
                     if (td[3].getText().replace(" ", "")[4]).isdigit() and int(td[3].getText().replace(" ", "")[4]) == level:
                         msg = td[2].getText() + " vient juste de résoudre le problème " + td[3].getText().replace(" ", "").replace("\n", "")
                         if dernierResolu[level-1] != msg:
-                            dernierResolu[level-1] = msg;
-                            if debut != 0: await bot.send_message(canalResolutions, msg);print(msg)
+                            dernierResolu[level-1] = msg
+                            if debut != 0: await canalResolutions.send(msg);print(msg)
                         level += 1
                         if level == 6: break
             debut = 1
             await sleep(10)
-        except Exception as exc : erreur('BACKGROUND');continue
+        except Exception as exc :
+            await erreur('BACKGROUND',ctx);continue
 #______________________________________________________________
 
 bot.run(token) #Token MT
