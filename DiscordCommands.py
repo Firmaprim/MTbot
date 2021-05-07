@@ -327,7 +327,7 @@ async def info(ctx,user = None):
             soup = BeautifulSoup(text, "lxml")
             try : Infos=list(filter(None,[soup.find_all('td', limit = 39)[i].getText().strip() for i in range(39)]))
             except : 
-                if await GetMTScore(idMT) == 2 : await ctx.send(content="Le compte Mathraining renseigné n'existe pas !");return
+                if (await GetMTScore(idMT)) == 2 : await ctx.send(content="Le compte Mathraining renseigné n'existe pas !");return
                 else : 
                     Infos=list(filter(None,[soup.find_all('td', limit = 3)[i].getText().strip() for i in range(3)]))
                     embed = Embed(title=Infos[0] + " - " + Infos[1], url=url, description="Membre n°"+str(idMT))
