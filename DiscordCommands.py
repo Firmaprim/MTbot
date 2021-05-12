@@ -47,14 +47,11 @@ perms="Vous n'avez pas les permissions pour effectuer cette commande."
 
 dernierResolu = [None]*5
 
-aclient = aiohttp.ClientSession()
-
 ##_________________Fonctions_Annexes____________________
 
 async def GetMTScore(idMT: int) :
-    async with session.get(f"http://mathraining.be/users/{idMT}") as response:
-        text = await response.text()
-    soup = BeautifulSoup(text,"lxml")  #on récupère le code source de la page
+    async with aclient.get(f"http://mathraining.be/users/{idMT}") as response: text = await response.text()
+    soup = BeautifulSoup(text,"lxml")
     try : 
         htmlscore = soup.find_all('td', limit = 5)
         if htmlscore != [] : return int(htmlscore[4].getText().strip())
@@ -153,7 +150,7 @@ async def on_ready():
     canalResolutions = serveur.get_channel(557951376429416455)
     canalLogsBot = serveur.get_channel(665532091622096927)
     
-    #bot.loop.create_task(background_tasks_mt())  (Pas encore réparé ...)
+    #bot.loop.create_task(background_tasks_mt())
     await bot.change_presence(activity=Game(name="Mathraining | &help"))
 
 @bot.event
@@ -193,9 +190,9 @@ async def ask(ctx,idMTnew: int):
     user=ctx.message.author
     try:
         msay=await ctx.send("`Chargement en cours ...`")
-        idMTold,idMTatt = (await FindUser(user, canalInfoBot)), (await FindUser(user,canalEnAttente))
+        idMTold,idMTatt=(await FindUser(user, canalInfoBot)),(await FindUser(user,canalEnAttente))
         if idMTold == 0 and idMTatt == 0 :  
-            Score = await GetMTScore(idMTnew)
+            Score=await GetMTScore(idMTnew)
             UserId,UserIdatt = (await FindMT(idMTnew, canalInfoBot)),(await FindMT(idMTnew,canalEnAttente))
             if UserId != 0 : await msay.edit(content="Ce compte Mathraining appartient déjà à "+str(bot.get_user(UserId))+" !")
             elif UserIdatt != 0: await msay.edit(content="Ce compte Mathraining a déjà été demandé à être relié par "+str(bot.get_user(UserIdatt))+" !")
@@ -322,8 +319,7 @@ async def info(ctx,user = None):
             idMT = (await FindUser(user,canalInfoBot))
         if idMT != 0:
             url="http://www.mathraining.be/users/"+str(idMT)
-            async with aclient.get(url) as response:
-                text = await response.text()
+            async with aclient.get(url) as response: text = await response.text()
             soup = BeautifulSoup(text, "lxml")
             try : Infos=list(filter(None,[soup.find_all('td', limit = 39)[i].getText().strip() for i in range(39)]))
             except : 
@@ -348,8 +344,7 @@ async def info(ctx,user = None):
 async def corrections(ctx,switch=""):
     """Affiche la liste des correcteurs et leurs nombres de corrections"""
     try:
-        async with aclient.get("http://www.mathraining.be/correctors") as response:
-            text = await response.text()
+        async with aclient.get("http://www.mathraining.be/correctors") as response: text = await response.text()
         soup = BeautifulSoup(text, "lxml")
         corrections = soup.find_all('td', attrs={"style":u"text-align:center;"})
         correcteurs = soup.find_all('a',{"href":compile(r"/users/.*")})[30:]
@@ -371,8 +366,7 @@ async def solved(ctx, user: Member, idpb: int):
     try:
         idMT=(await FindUser(user,canalInfoBot))
         if idMT != 0:
-            async with aclient.get(f"http://mathraining.be/users/{idMT}") as resp:
-                response = await resp.text()
+            async with aclient.get(f"http://mathraining.be/users/{idMT}") as resp : response = await resp.text()
             namepb = '#' + str(idpb)
             await ctx.send("Problème"+[" non "," "][namepb in response]+"résolu par l'utilisateur.")
         else: await ctx.send(nonRattachee)
@@ -422,11 +416,11 @@ async def lettres(ctx):
         embed.add_field( name = "Tirage", value = tirage, inline = False)
         await ctx.send(embed=embed)
     except Exception as exc : await erreur('LETTRES',ctx)
+    
 @bot.command()
 async def citation(ctx):
     try:
-        async with aclient.get("http://math.furman.edu/~mwoodard/www/data.html") as response:
-            text = await response.text()
+        async with aclient.get("http://math.furman.edu/~mwoodard/www/data.html") as response: text = await response.text()
         soup = BeautifulSoup(text, "lxml") #Penser à modifier la source soi-même ?
         bout = str(soup.find_all('p')[randint(0,756)]).replace("<br/>", "\n") 
         citation = (BeautifulSoup(bout, "lxml").getText()).split('\n')
@@ -488,8 +482,7 @@ async def background_tasks_mt():
     while not bot.is_closed :
         try:
             #Chiffres remarquables 
-            async with aclient.get("http://www.mathraining.be/") as response:
-                text = await response.text()
+            async with aclient.get("http://www.mathraining.be/") as response: text = await response.text()
             soup = BeautifulSoup(text,"lxml")
             info = soup.find_all('td',attrs={"class":u"left"})
             nums=list(map(lambda t : t.getText(),info))
@@ -507,8 +500,7 @@ async def background_tasks_mt():
                 await canalGeneral.send(msg)
             
             #Résolutions récentes
-            async with aclient.get("http://www.mathraining.be/solvedproblems") as response:
-                text = await response.text()
+            async with aclient.get("http://www.mathraining.be/solvedproblems") as response: text = await response.text()
             soup = BeautifulSoup(text, "html.parser")
             cible = soup.find_all('tr');level = 1
             for i in range(0, len(cible)):
@@ -526,7 +518,13 @@ async def background_tasks_mt():
         except Exception as exc :
             await erreur('BACKGROUND',ctx);continue
 #______________________________________________________________
+
 try:
+    aclient = aiohttp.ClientSession()
     bot.run(token) #Token MT
+except :
+    run(aclient.close())
+    driver.quit()
 finally:
     run(aclient.close())
+    driver.quit()
