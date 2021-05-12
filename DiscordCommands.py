@@ -2,7 +2,7 @@ from discord import *
 from discord.ext import commands
 from discord.utils import get
 
-import requests
+import aiohttp
 from bs4 import *
 from asyncio import *
 from re import compile
@@ -47,10 +47,14 @@ perms="Vous n'avez pas les permissions pour effectuer cette commande."
 
 dernierResolu = [None]*5
 
+aclient = aiohttp.ClientSession()
+
 ##_________________Fonctions_Annexes____________________
 
-def GetMTScore(idMT: int) :
-    soup = BeautifulSoup(requests.get("http://www.mathraining.be/users/"+str(idMT)).text,"lxml")  #on récupère le code source de la page
+async def GetMTScore(idMT: int) :
+    async with session.get(f"http://mathraining.be/users/{idMT}") as response:
+        text = await response.text()
+    soup = BeautifulSoup(text,"lxml")  #on récupère le code source de la page
     try : 
         htmlscore = soup.find_all('td', limit = 5)
         if htmlscore != [] : return int(htmlscore[4].getText().strip())
@@ -189,9 +193,9 @@ async def ask(ctx,idMTnew: int):
     user=ctx.message.author
     try:
         msay=await ctx.send("`Chargement en cours ...`")
-        idMTold,idMTatt=(await FindUser(user, canalInfoBot)),(await FindUser(user,canalEnAttente))
+        idMTold,idMTatt = (await FindUser(user, canalInfoBot)), (await FindUser(user,canalEnAttente))
         if idMTold == 0 and idMTatt == 0 :  
-            Score=GetMTScore(idMTnew)
+            Score = await GetMTScore(idMTnew)
             UserId,UserIdatt = (await FindMT(idMTnew, canalInfoBot)),(await FindMT(idMTnew,canalEnAttente))
             if UserId != 0 : await msay.edit(content="Ce compte Mathraining appartient déjà à "+str(bot.get_user(UserId))+" !")
             elif UserIdatt != 0: await msay.edit(content="Ce compte Mathraining a déjà été demandé à être relié par "+str(bot.get_user(UserIdatt))+" !")
@@ -229,7 +233,7 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
             if (await FindUser(user2,canalInfoBot)) == 0 :
                 await canalInfoBot.send(str(user2.mention)+ " " + str(idMT2))
         
-                role = roleScore(GetMTScore(idMT2))
+                role = roleScore(await GetMTScore(idMT2))
                 servRole = get(serveur.roles, name = role)
                 await user2.add_roles(servRole)
                 
@@ -257,7 +261,7 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
                         if msg[0][e2:-1] == user.mention[e1:-1]: 
                             await message.delete();break
                             
-                    role = roleScore(GetMTScore(idMT))
+                    role = roleScore(await GetMTScore(idMT))
                     servRole = get(serveur.roles, name = role)
                     await user.add_roles(servRole)
                     
@@ -284,7 +288,7 @@ async def update(ctx,user: Member = None):
         idMT=(await FindUser(user,canalInfoBot))
 
         if idMT != 0:
-            role = roleScore(GetMTScore(idMT))
+            role = roleScore(await GetMTScore(idMT))
             if role == -1: await erreur('ROLESCORE',ctx); return 
             
             roles=user.roles
@@ -318,10 +322,12 @@ async def info(ctx,user = None):
             idMT = (await FindUser(user,canalInfoBot))
         if idMT != 0:
             url="http://www.mathraining.be/users/"+str(idMT)
-            soup = BeautifulSoup(requests.get(url).text, "lxml")
+            async with aclient.get(url) as response:
+                text = await response.text()
+            soup = BeautifulSoup(text, "lxml")
             try : Infos=list(filter(None,[soup.find_all('td', limit = 39)[i].getText().strip() for i in range(39)]))
             except : 
-                if GetMTScore(idMT) == 2 : await ctx.send(content="Le compte Mathraining renseigné n'existe pas !");return
+                if (await GetMTScore(idMT)) == 2 : await ctx.send(content="Le compte Mathraining renseigné n'existe pas !");return
                 else : 
                     Infos=list(filter(None,[soup.find_all('td', limit = 3)[i].getText().strip() for i in range(3)]))
                     embed = Embed(title=Infos[0] + " - " + Infos[1], url=url, description="Membre n°"+str(idMT))
@@ -342,7 +348,9 @@ async def info(ctx,user = None):
 async def corrections(ctx,switch=""):
     """Affiche la liste des correcteurs et leurs nombres de corrections"""
     try:
-        soup = BeautifulSoup(requests.get("http://www.mathraining.be/correctors").text, "lxml")
+        async with aclient.get("http://www.mathraining.be/correctors") as response:
+            text = await response.text()
+        soup = BeautifulSoup(text, "lxml")
         corrections = soup.find_all('td', attrs={"style":u"text-align:center;"})
         correcteurs = soup.find_all('a',{"href":compile(r"/users/.*")})[30:]
         msg=''
@@ -363,7 +371,8 @@ async def solved(ctx, user: Member, idpb: int):
     try:
         idMT=(await FindUser(user,canalInfoBot))
         if idMT != 0:
-            response = requests.get("http://mathraining.be/users/" + str(idMT)).text
+            async with aclient.get(f"http://mathraining.be/users/{idMT}") as resp:
+                response = await resp.text()
             namepb = '#' + str(idpb)
             await ctx.send("Problème"+[" non "," "][namepb in response]+"résolu par l'utilisateur.")
         else: await ctx.send(nonRattachee)
@@ -416,7 +425,9 @@ async def lettres(ctx):
 @bot.command()
 async def citation(ctx):
     try:
-        soup = BeautifulSoup(requests.get("http://math.furman.edu/~mwoodard/www/data.html").text, "lxml") #Penser à modifier la source soi-même ?
+        async with aclient.get("http://math.furman.edu/~mwoodard/www/data.html") as response:
+            text = await response.text()
+        soup = BeautifulSoup(text, "lxml") #Penser à modifier la source soi-même ?
         bout = str(soup.find_all('p')[randint(0,756)]).replace("<br/>", "\n") 
         citation = (BeautifulSoup(bout, "lxml").getText()).split('\n')
         c=''
@@ -477,7 +488,9 @@ async def background_tasks_mt():
     while not bot.is_closed :
         try:
             #Chiffres remarquables 
-            soup = BeautifulSoup(requests.get("http://www.mathraining.be/").text,"lxml")
+            async with aclient.get("http://www.mathraining.be/") as response:
+                text = await response.text()
+            soup = BeautifulSoup(text,"lxml")
             info = soup.find_all('td',attrs={"class":u"left"})
             nums=list(map(lambda t : t.getText(),info))
             if debut == 0: print("Le bot vient juste d'être lancé !")
@@ -494,7 +507,9 @@ async def background_tasks_mt():
                 await canalGeneral.send(msg)
             
             #Résolutions récentes
-            soup = BeautifulSoup(requests.get("http://www.mathraining.be/solvedproblems").text, "html.parser")
+            async with aclient.get("http://www.mathraining.be/solvedproblems") as response:
+                text = await response.text()
+            soup = BeautifulSoup(text, "html.parser")
             cible = soup.find_all('tr');level = 1
             for i in range(0, len(cible)):
                 td = BeautifulSoup(str(cible[i]), "lxml").find_all('td')
@@ -511,5 +526,7 @@ async def background_tasks_mt():
         except Exception as exc :
             await erreur('BACKGROUND',ctx);continue
 #______________________________________________________________
-
-bot.run(token) #Token MT
+try:
+    bot.run(token) #Token MT
+finally:
+    run(aclient.close())
