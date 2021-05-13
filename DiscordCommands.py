@@ -77,7 +77,17 @@ def roleScore(s):
         else: role = "Novice"
         return role
     except: return -1
-
+    
+async def GetDiscordUser(ctx,user) :
+    try :
+        user1 = get(ctx.guild.members, name=user)
+        if user1 == None :
+            user2 = bot.get_user(id=int(user[3:-1]))
+            if user2 == None : return bot.get_user(id=int(user))
+            else : return user2
+        else : return user1
+    except : return None
+    
 async def FindUser(user: Member,canal) :
         idMT = 0
         if user == None : return 0
@@ -309,13 +319,13 @@ async def info(ctx,user = None):
             num=int(user)
             if len(user) <= 4 : idMT = num
             else : 
-                user = get(ctx.guild.members, name=user)
+                user = (await GetDiscordUser(ctx,user))
                 idMT = (await FindUser(user,canalInfoBot))
         except : 
             if user == None :
                 user = ctx.message.author
             else :
-                user = get(ctx.guild.members, name=user)
+                user = (await GetDiscordUser(ctx,user))
             idMT = (await FindUser(user,canalInfoBot))
         if idMT != 0:
             url="http://www.mathraining.be/users/"+str(idMT)
@@ -442,12 +452,24 @@ async def aops(ctx):
         except : return
 
 @bot.command(pass_context = True)
-async def oops(ctx,*args):
+async def oops(ctx):
     await ctx.message.add_reaction('😅')
     
 @bot.command(pass_context = True)
-async def trivial(ctx,*args):
+async def trivial(ctx):
     await ctx.message.add_reaction('😒')
+    
+@bot.command(pass_context = True)
+async def makeloose(ctx,user:Member = None):
+    try :
+        author = ctx.message.author
+        await (ctx.message).delete()
+        if not author == user : await ctx.send(str(user.mention)+" _a perdu ..._")
+        else : await ctx.send(str(user.mention)+" _a perdu tout seul ..._")
+        await user.send("_42_")
+    except :
+        try : await (ctx.message).delete();await ctx.send('<:blurryeyes:622399161240649751>')
+        except : await ctx.send('<:blurryeyes:622399161240649751>')
     
 bot.remove_command('help')
 @bot.command(pass_context = True)
