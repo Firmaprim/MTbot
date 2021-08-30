@@ -10,6 +10,7 @@ from re import compile
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
+import random
 from random import randint
 
 import AnnexeCompteBon
@@ -153,6 +154,9 @@ async def on_ready():
     global canalGeneral
     global canalResolutions
     global canalLogsBot
+    global PenduRunner
+    PenduRunner = AnnexePendu.Pendu()
+    PenduRunner.open_dic()
     serveur = bot.get_guild(430287489664548884)
     canalInfoBot = serveur.get_channel(448105204349403137)
     canalEnAttente = serveur.get_channel(605001945924763648)
@@ -426,6 +430,45 @@ async def lettres(ctx):
         embed.add_field( name = "Tirage", value = tirage, inline = False)
         await ctx.send(embed=embed)
     except Exception as exc : await erreur('LETTRES',ctx)
+          
+@bot.command()
+async def pendu(ctx, tuile: str = ''):
+    try:
+        print(tuile)
+        if tuile == '':
+            PenduRunner.start()
+            mot = PenduRunner.letters_guessed
+            format_mot = ''
+            for i in mot:
+                format_mot += i + " "
+
+            embed = Embed(title = 'Pendu', color = 0xFFA500)
+            embed.add_field(name = 'Mot à deviner : ', value = format_mot[:-1], inline = True)
+            await ctx.send(embed=embed)
+        else:
+            #runner = main.Pendu()
+            PenduRunner.check_letter(tuile)
+            res = PenduRunner.game_over()
+            print(res)
+            if res == 0:
+                embed = Embed(title = 'Perdu ! Vous avez perdu 1 point Mathraining.', color = 0xDC143C)
+                embed.add_field(name = 'Le mot était : ', value = PenduRunner.word, inline = True)
+                await ctx.send(embed=embed)
+            elif res == 1:
+                embed = Embed(title = 'Bravo ! Vous avez trouvé le mot.', color = 0x32CD32)
+                embed.add_field(name = 'Le mot était : ', value = PenduRunner.word, inline = True)
+                await ctx.send(embed=embed)
+            else:
+                embed = Embed(title = 'Actual State', color = 0xFFA500)
+                vies = 'Vous avez ' + str(PenduRunner.lifes_remaining) + ' vies.'
+                mot = PenduRunner.letters_guessed
+                format_mot = ''
+                for i in mot:
+                    format_mot += i + " "
+                embed.add_field(name = 'Votre avancée', value = format_mot[:-1], inline = True)
+                embed.add_field(name = 'Vos vies', value = vies, inline = True)
+                await ctx.send(embed=embed)
+    except Exception as exc : await erreur('PENDU',ctx)
     
 @bot.command()
 async def citation(ctx):
