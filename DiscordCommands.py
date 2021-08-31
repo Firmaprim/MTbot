@@ -10,7 +10,6 @@ from re import compile
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
-import random
 from random import randint
 
 import AnnexeCompteBon
