@@ -482,8 +482,7 @@ async def pendu(ctx, tuile: str = ''):
                         vies = 'Vous avez ' + str(PenduRunner.lifes_remaining) + ' vies.'
                         mot = PenduRunner.letters_guessed
                         format_mot = ''
-                        for i in mot:
-                            format_mot += i.capitalize() + " "
+                        for i in mot: format_mot += i.capitalize() + " "
                         embed.add_field(name = 'Votre avancée', value = format_mot[:-1], inline = True)
                         embed.add_field(name = 'Vos vies', value = vies, inline = True)
                 else:
