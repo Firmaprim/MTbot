@@ -6,18 +6,15 @@ class Pendu():
         with open('liste_francais.txt', 'r', encoding="latin-1") as dic:
             self.word_list = dic.read().split('\n')
         self.lifes_remaining = None
-        self.letters_guessed = None
-        
+        self.letters_guessed = None     
 
     def check_letter(self, letter):
-        tmp = 0
+       flag = True
         for i in range(len(self.word)):
             if self.word[i] == letter:
-                tmp = 1
+                flag = False
                 self.letters_guessed[i] = letter
-
-        if tmp == 0:
-            self.lifes_remaining -= 1
+        if flag : self.lifes_remaining -= 1
 
     def start(self):
         self.lifes_remaining = 9
@@ -25,24 +22,17 @@ class Pendu():
         self.letters_guessed = ['*']*len(self.word)
 
     def no_lives_left(self):
-        if self.lifes_remaining == 0:
-            return True
-        else:
-            return False
+        if self.lifes_remaining == 0: return True
+        else: return False
 
     def word_finish(self):
-        if '*' not in self.letters_guessed:
-            return True
-        else:
-            return False
+        if '*' not in self.letters_guessed: return True
+        else: return False
 
     def game_over(self):
-        if self.no_lives_left():
-            return 0
-        elif self.word_finish():
-            return 1
-        else:
-            return 2
+        if self.no_lives_left(): return 0
+        elif self.word_finish(): return 1
+        else: return 2
         
 '''
 runner = Pendu()
