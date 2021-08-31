@@ -469,26 +469,29 @@ async def pendu(ctx, tuile: str = ''):
             else:
                 checker = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
                 if tuile.lower() in checker:
-                    state = PenduRunner.check_letter(tuile.lower()) #here
-                    word, res = PenduRunner.game_over()
-                    #print(res)
-                    if res == 0:
-                        embed = Embed(title = 'Perdu ! Vous avez perdu 1 point Mathraining.', color = 0xDC143C)
-                        embed.add_field(name = 'Le mot était : ', value = word, inline = True)
-                    elif res == 1:
-                        embed = Embed(title = 'Bravo ! Vous avez trouvé le mot.', color = 0x32CD32)
-                        embed.add_field(name = 'Le mot était : ', value = word, inline = True)
-                    else: # here
-                        if state == 0:
-                            embed = Embed(title = 'Oh non... ce n\'est pas la bonne lettre', color = 0xFFA500)
-                        else:
-                            embed = Embed(title = "C'est la bonne lettre !", color = 0xFFA500)
-                        vies = 'Vous avez ' + str(PenduRunner.lifes_remaining) + ' vies.'
-                        mot = PenduRunner.letters_guessed
-                        format_mot = ''
-                        for i in mot: format_mot += i.capitalize() + " "
-                        embed.add_field(name = 'Votre avancée', value = format_mot[:-1], inline = True)
-                        embed.add_field(name = 'Vos vies', value = vies, inline = True)
+                    if tuile.lower() in PenduRunner.letters_guessed:
+                        embed = Embed(title = 'Vous avez déjà utilisé cette lettre !', color = 0xFFA500)
+                    else:
+                        state = PenduRunner.check_letter(tuile.lower()) #here
+                        word, res = PenduRunner.game_over()
+                        #print(res)
+                        if res == 0:
+                            embed = Embed(title = 'Perdu ! Vous avez perdu 1 point Mathraining.', color = 0xDC143C)
+                            embed.add_field(name = 'Le mot était : ', value = word, inline = True)
+                        elif res == 1:
+                            embed = Embed(title = 'Bravo ! Vous avez trouvé le mot.', color = 0x32CD32)
+                            embed.add_field(name = 'Le mot était : ', value = word, inline = True)
+                        else: # here
+                            if state == 0:
+                                embed = Embed(title = 'Oh non... ce n\'est pas la bonne lettre', color = 0xFFA500)
+                            else:
+                                embed = Embed(title = "C'est la bonne lettre !", color = 0xFFA500)
+                            vies = 'Vous avez ' + str(PenduRunner.lifes_remaining) + ' vies.'
+                            mot = PenduRunner.letters_guessed
+                            format_mot = ''
+                            for i in mot: format_mot += i.capitalize() + " "
+                            embed.add_field(name = 'Votre avancée', value = format_mot[:-1], inline = True)
+                            embed.add_field(name = 'Vos vies', value = vies, inline = True)
                 else:
                     embed = Embed(title = 'Vous devez entrer une lettre.', color = 0xFFA500)
                     embed.add_field(name = 'Entrez &pendu [lettre]', value = 'pour vous aider.')
