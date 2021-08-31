@@ -155,7 +155,6 @@ async def on_ready():
     global canalLogsBot
     global PenduRunner
     PenduRunner = AnnexePendu.Pendu()
-    PenduRunner.open_dic()
     serveur = bot.get_guild(430287489664548884)
     canalInfoBot = serveur.get_channel(448105204349403137)
     canalEnAttente = serveur.get_channel(605001945924763648)
