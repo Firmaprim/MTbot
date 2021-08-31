@@ -24,12 +24,14 @@ class Pendu():
 
     def game_over(self):
         if self.lifes_remaining == 0:
+            tmp = self.word
             self.word = ""
-            return 0
+            return tmp, 0
         elif '*' not in self.letters_guessed: 
+            tmp = self.word
             self.word = ""
-            return 1
-        else: return 2
+            return tmp, 1
+        else: return self.word, 2
         
 '''
 runner = Pendu()
