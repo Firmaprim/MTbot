@@ -451,7 +451,7 @@ async def pendu(ctx, tuile: str = ''):
         elif tuile == '': pass
         else:
             if tuile == "check":
-                embed = Embed(title = 'Actual State', color = 0xFFA500)
+                embed = Embed(title = 'État actuel de la partie :', color = 0xFFA500)
                 vies = 'Vous avez ' + str(PenduRunner.lifes_remaining) + ' vies.'
                 mot = PenduRunner.letters_guessed
                 format_mot = ''
@@ -461,7 +461,7 @@ async def pendu(ctx, tuile: str = ''):
             else:
                 PenduRunner.check_letter(tuile.lower())
                 res = PenduRunner.game_over()
-                print(res)
+                #print(res)
                 if res == 0:
                     embed = Embed(title = 'Perdu ! Vous avez perdu 1 point Mathraining.', color = 0xDC143C)
                     embed.add_field(name = 'Le mot était : ', value = PenduRunner.word, inline = True)
