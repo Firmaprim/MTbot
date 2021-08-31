@@ -1,4 +1,4 @@
-import random
+from random import choice
 # Let Adrien be a programmer, then Adrien > AnisDeFirma :)
 class Pendu():
     def __init__(self):
@@ -37,7 +37,7 @@ class Pendu():
 
     def start(self):
         self.lifes_remaining = 9
-        self.word = random.choice(self.word_list)
+        self.word = choice(self.word_list)
         self.letters_guessed = ['*']*len(self.word)
 
     def no_lives_left(self):
