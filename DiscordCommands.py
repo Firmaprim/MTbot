@@ -410,7 +410,7 @@ async def compte(ctx, tuile: tuple = (-1,-1,-1,-1,-1,-1),trouver: int = -1,sols=
         else:
             tuile2=[];tmp=tuile;i=1 #Tuile est en fait de la forme ('2',',','1','0',',','5',...)
             embed = Embed( title = "Le compte est bon", color = 0xFF4400 )
-            if len(tuile)=6 : 
+            if len(tuile)==6 : 
                 while ',' in tmp :
                     while tmp[i]!=',' : i+=1
                     tuile2+=[int(''.join(tmp[0:i]))];tmp=tmp[i+1:];i=0
