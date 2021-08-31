@@ -2,7 +2,7 @@ from random import choice
 # Let Adrien be a programmer, then Adrien > AnisDeFirma :)
 class Pendu():
     def __init__(self):
-        self.word = None
+        self.word = ""
         with open('liste_francais.txt', 'r', encoding="latin-1") as dic:
             self.word_list = dic.read().split('\n')
         self.lifes_remaining = None
@@ -30,8 +30,12 @@ class Pendu():
         else: return False
 
     def game_over(self):
-        if self.no_lives_left(): return 0
-        elif self.word_finish(): return 1
+        if self.no_lives_left(): 
+            self.word = ""
+            return 0
+        elif self.word_finish(): 
+            self.word = ""
+            return 1
         else: return 2
         
 '''
