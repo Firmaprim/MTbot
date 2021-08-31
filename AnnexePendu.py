@@ -14,8 +14,8 @@ class Pendu():
        	if self.word[i] == letter:
         	flag = False
         	self.letters_guessed[i] = letter
-        if flag : self.lifes_remaining -= 1; return 0
-        else: return 1
+       if flag : self.lifes_remaining -= 1; return 0
+       else: return 1
 
     def start(self):
         self.lifes_remaining = 9
