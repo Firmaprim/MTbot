@@ -10,6 +10,7 @@ class Pendu():
         self.tried_letters = None
 
     def check_letter(self, letter):
+
         self.tried_letters.append(letter.lower())
         flag = True
         for i in range(len(self.word)):
