@@ -14,6 +14,7 @@ class Pendu():
         self.lifes_remaining = None
         self.letters_guessed = None
         self.tried_letters = None
+        self.bot_tmp_msg = None
 
     def check_letter(self, letter):
         self.tried_letters.append(letter.lower())
@@ -45,6 +46,8 @@ class Pendu():
 
 
 async def pendu(ctx, tuile: str = '', PENDU_RUNNER = Pendu()):
+    try:
+        await (ctx.message).delete()
         if tuile == 'start':
             if PENDU_RUNNER.word == "":
                 PENDU_RUNNER.start()
@@ -127,4 +130,8 @@ async def pendu(ctx, tuile: str = '', PENDU_RUNNER = Pendu()):
         else:
             embed = Embed(title = 'Vous devez relancer une partie !', color = 0xFFA500)
             embed.add_field(name = 'Entrez &pendu start', value = 'pour vous aider.')
-        await ctx.send(embed=embed)
+        
+        if PENDU_RUNNER.bot_tmp_msg != None:
+            await PENDU_RUNNER.bot_tmp_msg.delete()
+        PENDU_RUNNER.bot_tmp_msg = await ctx.send(embed=embed)
+    except Exception as exc : await erreur('PENDU',ctx)
