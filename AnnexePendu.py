@@ -11,17 +11,6 @@ class Pendu():
     def open_dic(self):
         with open('liste_francais.txt', 'r', encoding="latin-1") as dic:
             self.word_list = dic.read().split('\n')
-        checker = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
-        #print(self.word_list)
-        for i in self.word_list:
-            tmp = 0
-            for c in i:
-                if c not in checker:
-                    tmp = 1
-            if tmp == 1:
-                #print(i)
-                self.word_list.remove(i)
-
         #print(self.word_list)
         
 
