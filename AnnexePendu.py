@@ -10,10 +10,10 @@ class Pendu():
 
     def check_letter(self, letter):
        flag = True
-        for i in range(len(self.word)):
-            if self.word[i] == letter:
-                flag = False
-                self.letters_guessed[i] = letter
+       for i in range(len(self.word)):
+       	if self.word[i] == letter:
+        	flag = False
+        	self.letters_guessed[i] = letter
         if flag : self.lifes_remaining -= 1; return 0
         else: return 1
 
