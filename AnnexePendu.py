@@ -3,15 +3,10 @@ from random import choice
 class Pendu():
     def __init__(self):
         self.word = None
-        self.word_list = None
-        self.lifes_remaining = None
-        self.letters_guessed = None
-
-
-    def open_dic(self):
         with open('liste_francais.txt', 'r', encoding="latin-1") as dic:
             self.word_list = dic.read().split('\n')
-        #print(self.word_list)
+        self.lifes_remaining = None
+        self.letters_guessed = None
         
 
     def check_letter(self, letter):
