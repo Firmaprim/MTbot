@@ -21,19 +21,11 @@ class Pendu():
         self.word = choice(self.word_list)
         self.letters_guessed = ['*']*len(self.word)
 
-    def no_lives_left(self):
-        if self.lifes_remaining == 0: return True
-        else: return False
-
-    def word_finish(self):
-        if '*' not in self.letters_guessed: return True
-        else: return False
-
     def game_over(self):
-        if self.no_lives_left(): 
+        if self.lifes_remaining == 0:
             self.word = ""
             return 0
-        elif self.word_finish(): 
+        elif '*' not in self.letters_guessed: 
             self.word = ""
             return 1
         else: return 2
