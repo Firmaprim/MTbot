@@ -469,7 +469,7 @@ async def pendu(ctx, tuile: str = ''):
                 if tuile.lower() in checker:
                     state = PenduRunner.check_letter(tuile.lower()) #here
                     word, res = PenduRunner.game_over()
-                    print(res)
+                    #print(res)
                     if res == 0:
                         embed = Embed(title = 'Perdu ! Vous avez perdu 1 point Mathraining.', color = 0xDC143C)
                         embed.add_field(name = 'Le mot était : ', value = word, inline = True)
