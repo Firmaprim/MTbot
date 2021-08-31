@@ -12,6 +12,7 @@ from selenium.webdriver.firefox.options import Options
 
 from random import randint
 
+import AnnexePendu
 import AnnexeCompteBon
 import AopsCore
 
@@ -466,14 +467,14 @@ async def pendu(ctx, tuile: str = ''):
                 checker = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
                 if tuile.lower() in checker:
                     state = PenduRunner.check_letter(tuile.lower()) #here
-                    res = PenduRunner.game_over()
+                    word, res = PenduRunner.game_over()
                     print(res)
                     if res == 0:
                         embed = Embed(title = 'Perdu ! Vous avez perdu 1 point Mathraining.', color = 0xDC143C)
-                        embed.add_field(name = 'Le mot était : ', value = PenduRunner.word, inline = True)
+                        embed.add_field(name = 'Le mot était : ', value = word, inline = True)
                     elif res == 1:
                         embed = Embed(title = 'Bravo ! Vous avez trouvé le mot.', color = 0x32CD32)
-                        embed.add_field(name = 'Le mot était : ', value = PenduRunner.word, inline = True)
+                        embed.add_field(name = 'Le mot était : ', value = word, inline = True)
                     else: # here
                         if state == 0:
                             embed = Embed(title = 'Oh non... ce n\'est pas la bonne lettre', color = 0xFFA500)
