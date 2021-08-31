@@ -128,14 +128,15 @@ def Deconnexion() :
     driver.find_element_by_link_text("Déconnexion").click()
     driver.quit()
     
-async def erreur(e,ctx=None) :
+async def erreur(e,ctx=None,switch=1) :
     err="- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -"+'\n'+format_exc()+"- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -";print(err)
     err="```diff\n"+err+"```"
     await canalLogsBot.send(err)
     if ctx:
         await ctx.send("**[Erreur "+e+']** '+"`"+errmsg+"`"+" **[Erreur "+e+']**')
         e=Embed()
-        e.set_image(url="https://cdn.discordapp.com/attachments/515636703155847225/624856715766267905/Screenshot_20190921_083716.jpg")
+        if switch == 2 : e.set_image(url="https://cdn.discordapp.com/attachments/515636703155847225/882288483195047946/Screenshot_20190921_083716.jpg")
+        else e.set_image(url="https://cdn.discordapp.com/attachments/515636703155847225/624856715766267905/Screenshot_20190921_083716.jpg")
         await ctx.send(embed=e)
 
 ##_________________________EVENT_______________________________________
@@ -489,7 +490,7 @@ async def pendu(ctx, tuile: str = ''):
                     embed = Embed(title = 'Vous devez entrer une lettre.', color = 0xFFA500)
                     embed.add_field(name = 'Entrez &pendu [lettre]', value = 'pour vous aider.')
         await ctx.send(embed=embed)
-    except Exception as exc : await erreur('PENDU',ctx)
+    except Exception as exc : await erreur('PENDU',ctx,2)
     
 @bot.command()
 async def citation(ctx):
@@ -539,7 +540,7 @@ bot.remove_command('help')
 @bot.command(pass_context = True)
 async def help(ctx):
     try:
-        embed = Embed(title="Mathraining bot", type="rich", description="Préfixe avant les commandes : &.", color=0x87CEEB)
+        embed = Embed(title="Mathraining bot", type="rich", description="Préfixe avant les commandes : &. \n [Le code source est disponible.](https://github.com/Firmaprim/MTbot/)", color=0x87CEEB)
         embed.add_field(name="ask idMathraining", value="Pour demander à rattacher votre compte Mathraining." +
         "\n idMathraining est le nombre dans l'url de votre page de profil sur le site.", inline=False)
         embed.add_field(name="verify", value="Pour valider le lien de votre compte Mathraining avec votre compte Discord.", inline=False)
@@ -549,7 +550,9 @@ async def help(ctx):
         embed.add_field(name="corrections (all)", value="Affiche la liste des correcteurs (qui ont corrigé récemment ou pas avec \"all\") et leurs contributions.", inline=False)
         embed.add_field(name="solved utilisateur numPb", value="Indique si le problème numéro numPb a été résolu par l'utilisateur.", inline=False)
         embed.add_field(name="hi", value="Permet d'effectuer un ping avec le bot.", inline=False)
-        embed.add_field(name="compte (a,b,c,d,e,f ÀTrouver NbrSolutions)", value="Effectue un tirage si aucun argument n'est donné, résout le tirage sinon.", inline=False)
+        embed.add_field(name="compte (a,b,c,d,e,f ÀTrouver NbrSolutions)", value="Effectue un tirage de chiffres si aucun argument n'est donné, résout le tirage sinon.", inline=False)
+        embed.add_field(name="lettres", value="Effectue un tirage de lettres.", inline=False)
+        embed.add_field(name="pendu", value="Pour jouer au pendu.", inline=False)
         embed.add_field(name="citation", value="Affiche une citation mathématique au hasard.\n Source : [Furman University, Mathematical Quotations Server](http://math.furman.edu/~mwoodard/mquot.html)", inline=False)
         embed.add_field(name="aops", value="Permet d'avoir accès aux problèmes AoPS et les afficher.", inline=False)
         embed.add_field(name="help", value="Affiche ce message en MP.", inline=False)
