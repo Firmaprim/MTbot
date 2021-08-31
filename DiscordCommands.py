@@ -136,7 +136,7 @@ async def erreur(e,ctx=None,switch=1) :
         await ctx.send("**[Erreur "+e+']** '+"`"+errmsg+"`"+" **[Erreur "+e+']**')
         e=Embed()
         if switch == 2 : e.set_image(url="https://cdn.discordapp.com/attachments/515636703155847225/882288483195047946/Screenshot_20190921_083716.jpg")
-        else e.set_image(url="https://cdn.discordapp.com/attachments/515636703155847225/624856715766267905/Screenshot_20190921_083716.jpg")
+        else : e.set_image(url="https://cdn.discordapp.com/attachments/515636703155847225/624856715766267905/Screenshot_20190921_083716.jpg")
         await ctx.send(embed=e)
 
 ##_________________________EVENT_______________________________________
