@@ -409,16 +409,18 @@ async def compte(ctx, tuile: tuple = (-1,-1,-1,-1,-1,-1),trouver: int = -1,sols=
             embed.add_field( name = "Tirage", value = tirage, inline = False )
         else:
             tuile2=[];tmp=tuile;i=1 #Tuile est en fait de la forme ('2',',','1','0',',','5',...)
-            while ',' in tmp :
-                while tmp[i]!=',' : i+=1
-                tuile2+=[int(''.join(tmp[0:i]))];tmp=tmp[i+1:];i=0
-            tuile2+=[int(''.join(tmp))] #Ne pas oublier le dernier nombre ...
-            res=AnnexeCompteBon.Solve(trouver,tuile2,sols); msg = ''
-            for s in res : msg+=s;msg+='\n'
-            #print(msg)
             embed = Embed( title = "Le compte est bon", color = 0xFF4400 )
-            if msg : embed.add_field( name = "Voici "+str(len(res))+" solution(s) choisie(s) au hasard :", value = msg, inline = False)
-            else : embed.add_field( name = "Mince !", value = "Il n'y a pas de solution ...", inline = False)           
+            if len(tuile)=6 : 
+                while ',' in tmp :
+                    while tmp[i]!=',' : i+=1
+                    tuile2+=[int(''.join(tmp[0:i]))];tmp=tmp[i+1:];i=0
+                tuile2+=[int(''.join(tmp))] #Ne pas oublier le dernier nombre ...
+                res=AnnexeCompteBon.Solve(trouver,tuile2,sols); msg = ''
+                for s in res : msg+=s;msg+='\n'
+            #print(msg)
+                if msg : embed.add_field( name = "Voici "+str(len(res))+" solution(s) choisie(s) au hasard :", value = msg, inline = False)
+                else : embed.add_field( name = "Mince !", value = "Il n'y a pas de solution ...", inline = False)    
+            else : embed.add_field( name = "Mince !", value = "Il n'y a pas le bon nombre de tuiles ...", inline = False)    
         await ctx.send(embed=embed)
     except Exception as exc : await erreur('COMPTE',ctx)
      
