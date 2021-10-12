@@ -1,0 +1,19 @@
+#Token Discord :
+token: TOKEN_DISCORD
+
+#Pour se connecter à MT :
+user: UTILISATEUR_MT
+password: MDP_MT
+
+#Différentes images de fail :
+AdrienFail: https://cdn.discordapp.com/attachments/515636703155847225/882288483195047946/Screenshot_20190921_083716.jpg
+FirmaFail: https://cdn.discordapp.com/attachments/515636703155847225/624856715766267905/Screenshot_20190921_083716.jpg
+
+#Id canaux et serveur :
+IdServeur: 000000000000000000
+IdInfoBot: 000000000000000000
+IdEnAttente: 000000000000000000
+IdGeneral: 000000000000000000
+IdResolutions: 000000000000000000
+IdLogsBot: 000000000000000000
+

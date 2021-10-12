@@ -17,6 +17,7 @@ import AnnexeCompteBon
 import AopsCore
 
 from traceback import format_exc
+from yaml import safe_load
 
 intents = Intents.default()
 intents.members = True
@@ -26,7 +27,7 @@ bot = commands.Bot(command_prefix='&', description='Bot Mathraining, merci aux g
 
 #____________________CONSTANTES_______________________________
 
-token = 'SECRET'
+with open('options.yml', 'r') as options_file : options = safe_load(options_file)
 
 NomsRoles = ["Grand Maitre", "Maitre", "Expert", "Chevronné", "Expérimenté", "Qualifié", "Compétent", "Initié", "Débutant", "Novice"]
 
@@ -38,11 +39,9 @@ colors = {'Novice' : 0x888888, 'Débutant' : 0x08D508, 'Débutante' : 0x08D508, 
 nonRattachee = "Cette personne n'est pas rattachée à un compte Mathraining.\nTaper la commande `&help` pour plus d'informations."
 
 #Firefox-headless
-options = webdriver.FirefoxOptions()
-options.add_argument('-headless')
+wdoptions = webdriver.FirefoxOptions()
+wdoptions.add_argument('-headless')
 
-idAdmin="430287978192044037"
-idModo="491291638233169931"
 errmsg ="Une erreur a été rencontrée, contactez un Admin ou un Modérateur."
 perms="Vous n'avez pas les permissions pour effectuer cette commande."
 
@@ -113,14 +112,14 @@ async def FindMT(idMT: int, canal) :
 
 def Connexion() :
     global driver
-    driver = webdriver.Firefox(options=options)
+    driver = webdriver.Firefox(options=wdoptions)
     driver.get("https://mathraining.be")
     driver.find_element_by_link_text("Connexion").click()
     username = driver.find_element_by_id("tf1")
-    username.clear();username.send_keys("SECRET")
+    username.clear();username.send_keys(options['user'])
     
     password = driver.find_element_by_name("session[password]")
-    password.clear();password.send_keys("SECRET")
+    password.clear();password.send_keys(options['password'])
     
     driver.find_element_by_name("commit").click()    
     
@@ -136,8 +135,8 @@ async def erreur(e,ctx=None,switch=1) :
     if ctx:
         await ctx.send("**[Erreur "+e+']** '+"`"+errmsg+"`"+" **[Erreur "+e+']**')
         e=Embed()
-        if switch == 2 : e.set_image(url="https://cdn.discordapp.com/attachments/515636703155847225/882288483195047946/Screenshot_20190921_083716.jpg")
-        else : e.set_image(url="https://cdn.discordapp.com/attachments/515636703155847225/624856715766267905/Screenshot_20190921_083716.jpg")
+        if switch == 2 : e.set_image(url=options['AdrienFail'])
+        else : e.set_image(url=options['FirmaFail'])
         await ctx.send(embed=e)
 
 ##_________________________EVENT_______________________________________
@@ -157,12 +156,12 @@ async def on_ready():
     global canalLogsBot
     global PenduRunner
     PenduRunner = AnnexePendu.Pendu()
-    serveur = bot.get_guild(430287489664548884)
-    canalInfoBot = serveur.get_channel(448105204349403137)
-    canalEnAttente = serveur.get_channel(605001945924763648)
-    canalGeneral = serveur.get_channel(430291539449872384)
-    canalResolutions = serveur.get_channel(557951376429416455)
-    canalLogsBot = serveur.get_channel(665532091622096927)
+    serveur = bot.get_guild(options['IdServeur'])
+    canalInfoBot = serveur.get_channel(options['IdInfoBot'])
+    canalEnAttente = serveur.get_channel(options['IdEnAttente'])
+    canalGeneral = serveur.get_channel(options['IdGeneral'])
+    canalResolutions = serveur.get_channel(options['IdResolutions'])
+    canalLogsBot = serveur.get_channel(options['IdLogsBot'])
     
     #bot.loop.create_task(background_tasks_mt())
     await bot.change_presence(activity=Game(name="Mathraining | &help"))
@@ -556,7 +555,7 @@ async def background_tasks_mt():
 
 try:
     aclient = aiohttp.ClientSession()
-    bot.run(token) #Token MT
+    bot.run(options['token']) #Token MT
 except :
     run(aclient.close())
     driver.quit()
