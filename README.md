@@ -7,7 +7,7 @@ Dépendances sur pip :
  - aiohttp
  - bs4 (beautiful soup 4)
  - selenium
- - ...
+ - PyYAML
 
 Autres dépendances :
  - Geckodriver
