@@ -6,10 +6,11 @@ Dépendances sur pip :
  - discord.py
  - aiohttp
  - bs4 (beautiful soup 4)
+ - lxml
  - selenium
  - PyYAML
 
 Autres dépendances :
- - Geckodriver
+ - Geckodriver : https://github.com/mozilla/geckodriver/releases (à mettre à la racine)
 
 (à compléter)
