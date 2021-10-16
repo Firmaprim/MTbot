@@ -1,0 +1,5 @@
+beautifulsoup4>=4.9.3
+discord.py>=1.6.0
+lxml>=4.6.2
+PyYAML>=5.4.1
+selenium>=3.141.0
