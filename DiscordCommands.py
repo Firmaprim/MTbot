@@ -14,13 +14,11 @@ from random import randint
 
 import AnnexePendu
 import AnnexeCompteBon
+import AnnexeCompare
 import AopsCore
 
 from traceback import format_exc
 from yaml import safe_load
-
-import datetime
-from matplotlib import pyplot as plt
 
 intents = Intents.default()
 intents.members = True
@@ -356,142 +354,34 @@ async def info(ctx,user = None):
         else: await ctx.send(nonRattachee)
     except Exception as exc : await erreur('INFO',ctx)
 
-async def plot(user_id):
-    resp = await aclient.get(f"https://www.mathraining.be/users/{user_id}")
-    
-    soup = BeautifulSoup(await resp.text(), features='lxml')
-
-    if soup.select_one('div.error'):
-        return -2, -2, -2, 0
-    
-    resolutions_table = soup.select_one('table.table.middle_aligned')
-    
-    name = soup.select_one("title").text.replace('| Mathraining', '').strip()
-
-    if not resolutions_table:
-        return -1, -1, name, 0
-
-    points = 0
-
-    x = []
-    y = []
-
-    for resolution in reversed(resolutions_table.select('tr')):
-        exo_pts = resolution.select_one('td').text.replace('+', '').strip()
-        if not exo_pts: # exo fondements
-            continue
-        exo_pts = int(exo_pts)
-        date_element = resolution.select('td')[1]
-        date_element.select_one('span').replace_with(' ' + date_element.select_one('span').text)
-        date = resolution.select('td')[1].text.strip()
-        when = datetime.datetime.strptime(date.replace('h', ':'), '%d/%m/%y %H:%M').date()
-        points += exo_pts
-        if when in x:
-            y[-1] += exo_pts
-        else:
-            x.append(when)
-            y.append(points)
-    
-    x.insert(0, x[0])
-    y.insert(0, 0)
-
-    return x, y, name, points
-
-async def get_mt_id(ctx, user):
-    try: 
-        num=int(user)
-        if len(user) <= 4:
-            return num
-        else: 
-            user = (await GetDiscordUser(ctx, user))
-            idMT = (await FindUser(user, canalInfoBot))
-            return idMT
-    except: 
-        user = (await GetDiscordUser(ctx, user))
-        idMT = (await FindUser(user, canalInfoBot))
-        return idMT
-
 @bot.command()
 async def compare(ctx, user1, user2 = None):
-    if user2 == None:
-        user2 = user1
-        user1 = f"<@!{ctx.message.author.id}>"
-
-    id1 = await get_mt_id(ctx, user1)
-    id2 = await get_mt_id(ctx, user2)
-
-    if str(id1) == str(id2):
-        await ctx.channel.send(f"Pourquoi se comparer avec soi même ?")
-        return
-    
-    if not id1 or not id2:
-        await ctx.channel.send(nonRattachee)
-        return
-    
     try:
-        async with ctx.channel.typing():
-            fig, ax = plt.subplots(figsize=(9,5))
+        if not user2:
+            user2 = user1
+            user1 = f"<@!{ctx.message.author.id}>"
 
-            levels = {
-                0:    "#888888",
-                70:   "#08D508",
-                200:  "#008800",
-                400:  "#00BBEE",
-                750:  "#0033FF",
-                1250: "#DD77FF",
-                2000: "#A000A0",
-                3200: "#FFA000",
-                5000: "#FF4400",
-                7500: "#CC0000",
-                9999: None
-            }
+        if user1.isdigit() and len(user1) <= 4:
+            id1 = int(user1)
+        else:
+            user = await GetDiscordUser(ctx, user1)
+            id1 = await FindUser(user, canalInfoBot)
 
-            x, y, name, pts = await plot(id1)
-            ax.plot(x, y, color='white', linewidth=2, marker='o', markersize=4)
-            if x == -2:
-                await ctx.channel.send(f"{id1}: Utilisateur introuvable")
-                return
-            if x == -1:
-                await ctx.channel.send(f"Impossible de se comparer avec **{name}**")
-                return
-            
-            x2, y2, name2, pts2 = await plot(id2)
-            ax.plot(x2, y2, color='yellow', linewidth=2, marker='o', markersize=4)
-            if x2 == -2:
-                await ctx.channel.send(f"{id2}: Utilisateur introuvable")
-                return
-            if x2 == -1:
-                await ctx.channel.send(f"Impossible de se comparer avec **{name2}**")
-                return
+        if user2.isdigit() and len(user2) <= 4:
+            id2 = int(user2)
+        else:
+            user = await GetDiscordUser(ctx, user2)
+            id2 = await FindUser(user, canalInfoBot)
 
-
-            levels_pts = list(levels.keys())
-            levels_colors = list(levels.values())
-            for i in range(len(levels)-1):
-                ax.axhspan(levels_pts[i], levels_pts[i+1], alpha=1, color=levels_colors[i])
-
-            if y[-1] > 5000 or y2[-1] > 5000:
-                levels_pts.remove(0)
-                levels_pts.remove(200)
-            plt.yticks(levels_pts[:-1], levels_pts[:-1])
-
-            ax.set_xlim(min(x[0], x2[0]), max(x[-1], x2[-1]))
-            ax.set_ylim(0, int(max(y[-1], y2[-1]) * 1.2))
-
-            ax.legend([name, name2], loc=2)
-
-
-            plt.margins(y=0)
-            fig.tight_layout()
-            plt.savefig("compare.png")
-
-            file = File("compare.png")
-            embed = Embed(title=f'**{name} ({pts})** vs **{name2} ({pts2})**', color=0x87CEEB)
-            embed.set_image(url="attachment://compare.png")
-            await ctx.send(file=file, embed=embed)
+        if not id1 or not id2:
+            await ctx.channel.send(nonRattachee)
+        elif id1 == id2:
+            await ctx.channel.send(f"Pourquoi se comparer avec soi même ?")
+        else:
+            await AnnexeCompare.make_graph(ctx, id1, id2, aclient)
 
     except Exception as exc: await erreur('COMPARE', ctx)
-          
+
 @bot.command()
 async def corrections(ctx,switch=""):
     """Affiche la liste des correcteurs et leurs nombres de corrections"""
