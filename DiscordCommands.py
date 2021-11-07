@@ -573,6 +573,8 @@ async def task():
 
             if nbRequetes > 0: # pour éviter de spam au lancement du bot
                 if not (user, probleme) in resolutionsRecentes: # nouvelle résolution
+                    discordUser = FindMT(user, canalInfoBot)
+                    if discordUser == 0: continue # on affiche que les utilisateurs du discord MT
 
                     # on récupère le lien du problème
                     with open("Problems.txt", "r") as file:
@@ -581,7 +583,7 @@ async def task():
                             if numero == probleme:
                                 urlPb = url; break
                     
-                    await canalResolutions.send(f"{FindMT(user, canalInfoBot)} a résolu le problème #{probleme} (http://www.mathraining.be/problems/{urlPb}) !")
+                    await canalResolutions.send(f"{discordUser} a résolu le problème #{probleme} (http://www.mathraining.be/problems/{urlPb}) !")
             
             resolutionsRecentes.add((user, probleme))
 
