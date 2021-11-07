@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord.utils import get
 
 import aiohttp
+import requests
 from bs4 import *
 from asyncio import *
 from re import compile
@@ -46,6 +47,8 @@ errmsg ="Une erreur a été rencontrée, contactez un Admin ou un Modérateur."
 perms="Vous n'avez pas les permissions pour effectuer cette commande."
 
 dernierResolu = [None]*5
+nbRequetes = 0
+resolutionsRecentes = set()
 
 ##_________________Fonctions_Annexes____________________
 
@@ -164,6 +167,7 @@ async def on_ready():
     canalLogsBot = serveur.get_channel(options['IdLogsBot'])
     
     #bot.loop.create_task(background_tasks_mt())
+    task.start()
     await bot.change_presence(activity=Game(name="Mathraining | &help"))
 
 @bot.event
@@ -551,6 +555,41 @@ async def background_tasks_mt():
             await sleep(10)
         except Exception as exc :
             await erreur('BACKGROUND',ctx);continue
+
+@tasks.loop(seconds = 100)
+async def task():
+    global nbRequetes, resolutionsRecentes, canalResolutions, canalInfoBot
+    
+    try:
+        url = "http://www.mathraining.be/solvedproblems"
+        req = requests.get(url)
+        response = req.text
+        soup = BeautifulSoup(response, "html.parser")
+
+        table = soup.find("table")
+        for resolution in table.find_all("tr"):
+            elements = resolution.find_all("td")
+            user = elements[2].find("a")["href"].split("/")[-1]
+            probleme = elements[5].contents[-1].strip()[1:]
+
+            if nbRequetes > 0: # pour éviter de spam au lancement du bot
+                if not (user, probleme) in resolutionsRecentes: # nouvelle résolution
+
+                    # on récupère le lien du problème
+                    with open("Problems.txt", "r") as file:
+                        for line in file:
+                            numero, url = map(int, line.split())
+                            if numero == probleme:
+                                urlPb = url; break
+                    
+                    await canalResolutions.send(f"{FindMT(user, canalInfoBot)} a résolu le problème #{probleme} (http://www.mathraining.be/problems/{urlPb}) !")
+            
+            resolutionsRecentes.add((user, probleme))
+
+        nbRequetes += 1
+    except Exception as exc:
+        await erreur("TASK")
+
 #______________________________________________________________
 
 try:
