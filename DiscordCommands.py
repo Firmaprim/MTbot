@@ -3,7 +3,6 @@ from discord.ext import commands
 from discord.utils import get
 
 import aiohttp
-import requests
 from bs4 import *
 from asyncio import *
 from re import compile
@@ -562,9 +561,9 @@ async def task():
     
     try:
         url = "http://www.mathraining.be/solvedproblems"
-        req = requests.get(url)
-        response = req.text
-        soup = BeautifulSoup(response, "html.parser")
+        async with aclient.get(url) as response:
+            text = await response.text()
+        soup = BeautifulSoup(text, "html.parser")
 
         table = soup.find("table")
         for resolution in table.find_all("tr"):
