@@ -1,10 +1,15 @@
 from discord import *
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.utils import get
 
+import datetime, pytz
+from email.utils import parsedate_to_datetime
+
 import aiohttp
+
 from bs4 import *
 from asyncio import *
+
 from re import compile
 
 from selenium import webdriver
@@ -45,8 +50,6 @@ wdoptions.add_argument('-headless')
 
 errmsg ="Une erreur a été rencontrée, contactez un Admin ou un Modérateur."
 perms="Vous n'avez pas les permissions pour effectuer cette commande."
-
-dernierResolu = [None]*5
 
 ##_________________Fonctions_Annexes____________________
 
@@ -164,8 +167,8 @@ async def on_ready():
     canalGeneral = serveur.get_channel(options['IdGeneral'])
     canalResolutions = serveur.get_channel(options['IdResolutions'])
     canalLogsBot = serveur.get_channel(options['IdLogsBot'])
+    task.start()
     
-    #bot.loop.create_task(background_tasks_mt())
     await bot.change_presence(activity=Game(name="Mathraining | &help"))
 
 @bot.event
@@ -540,50 +543,76 @@ async def help(ctx):
 
 ##Tâches d'arrière-plan
 
-async def background_tasks_mt():
-    debut=0
-    numsOld=[0]*4
-    await bot.wait_until_ready()
-    while not bot.is_closed :
-        try:
-            #Chiffres remarquables 
-            async with aclient.get("http://www.mathraining.be/") as response: text = await response.text()
-            soup = BeautifulSoup(text,"lxml")
-            info = soup.find_all('td',attrs={"class":u"left"})
-            nums=list(map(lambda t : t.getText(),info))
-            if debut == 0: print("Le bot vient juste d'être lancé !")
-            elif numsOld != nums and (0 in list(map(lambda x: int(x)%100,nums[0:2])) or 0 in list(map(lambda x: int(x)%1000,nums[2:4]))) :
-                if nums[0] != numsOld[0] and int(nums[0])%100==0: msg = "Oh ! Il y a maintenant " + nums[0] + " utilisateurs sur Mathraining !🥳\n"
-                else: msg = "Il y a " + nums[0] + " utilisateurs sur Mathraining.\n"
-                if nums[1] != numsOld[1] and int(nums[1])%100==0: msg += "Oh ! Il y a maintenant " + nums[1] + " problèmes résolus ! 🥳\n"
-                else: msg += "Il y a " + nums[1] + " problèmes résolus.\n"
-                if nums[2] != numsOld[2] and int(nums[2])%1000==0: msg += "Oh ! Il y a maintenant " + nums[2] + " exercices résolus ! 🥳\n"
-                else: msg += "Il y a " + nums[2] + " exercices résolus.\n"
-                if nums[3] != numsOld[3] and int(nums[3])%1000==0: msg += "Oh ! Il y a maintenant " + nums[3] + " points distribués ! 🥳"
-                else: msg += "Il y a " + nums[3] + " points distribués."
-                numsOld=nums
-                await canalGeneral.send(msg)
-            
-            #Résolutions récentes
-            async with aclient.get("http://www.mathraining.be/solvedproblems") as response: text = await response.text()
-            soup = BeautifulSoup(text, "html.parser")
-            cible = soup.find_all('tr');level = 1
-            for i in range(0, len(cible)):
-                td = BeautifulSoup(str(cible[i]), "lxml").find_all('td')
-                if len(td) > 3:
-                    if (td[3].getText().replace(" ", "")[4]).isdigit() and int(td[3].getText().replace(" ", "")[4]) == level:
-                        msg = td[2].getText() + " vient juste de résoudre le problème " + td[3].getText().replace(" ", "").replace("\n", "")
-                        if dernierResolu[level-1] != msg:
-                            dernierResolu[level-1] = msg
-                            if debut != 0: await canalResolutions.send(msg);print(msg)
-                        level += 1
-                        if level == 6: break
-            debut = 1
-            await sleep(10)
-        except Exception as exc :
-            await erreur('BACKGROUND',ctx);continue
-#______________________________________________________________
+last_submission_date = None
+statistiques = [0, 0, 0, 0]
+nbRequetes = 0
 
+@tasks.loop(seconds = 300)
+async def task():
+    global last_submission_date, nbRequetes, statistiques
+
+    try:
+        # Chiffres remarquables
+        response = await aclient.get("http://www.mathraining.be/")
+        soup = BeautifulSoup(await response.text(), "lxml")
+
+        taillePaquet = [100, 1000, 10000, 50000] # paliers utilisateurs; problèmes; exercices; points
+
+        table = soup.find("table")
+        for i, stat in enumerate(table.find_all("tr")):
+            nombre = int("".join(stat.find("td").text.split()))
+
+            if nombre//taillePaquet[i] > statistiques[i]:
+                if statistiques[i] == 0: # pour éviter de spam au lancement du bot
+                    statistiques[i] = nombre//taillePaquet[i]
+                else:
+                    statistiques[i] = nombre//taillePaquet[i]
+                    if i == 0 : message = f"Oh ! Il y a maintenant {(nombre//taillePaquet[i])*taillePaquet[i]} utilisateurs sur Mathraining ! 🥳"
+                    elif i == 1 : message = f"Oh ! Il y a maintenant {(nombre//taillePaquet[i])*taillePaquet[i]} problèmes résolus ! 🥳"
+                    elif i == 2 : message = f"Oh ! Il y a maintenant {(nombre//taillePaquet[i])*taillePaquet[i]} exercices résolus ! 🥳"
+                    elif i == 3 : message = f"Oh ! Il y a maintenant {(nombre//taillePaquet[i])*taillePaquet[i]} points distribués ! 🥳"
+
+                    await canalGeneral.send(embed=Embed(description=message, color=0xF9E430))
+        
+        # Résolutions récentes
+        response = await aclient.get("https://www.mathraining.be/solvedproblems")
+        soup = BeautifulSoup(await response.text(), "lxml")
+
+        now = parsedate_to_datetime(response.headers['Date']).replace(second = 0, tzinfo = None)
+        now += datetime.timedelta(hours = int(datetime.datetime.now(pytz.timezone('Europe/Paris')).strftime('%z'))/100)
+        
+        print("now =", now)
+        
+        loop_until = last_submission_date or now
+        last_submission_date = now
+
+        table = soup.find("table")
+        for resolution in table.find_all("tr"):
+            elements = resolution.find_all("td")
+            
+            this_date = datetime.datetime.strptime(elements[0].decode_contents() + " " + elements[1].decode_contents().replace("h", ":"), '%d/%m/%y %H:%M')
+            if this_date >= last_submission_date: continue
+            if this_date < loop_until: break
+
+            user = elements[2].find("a")["href"].split("/")[-1]
+            probleme = elements[5].contents[-1].strip()[1:]
+
+            discordUser = await FindMT(user, canalInfoBot)
+            if not discordUser: continue # on affiche que les utilisateurs du discord MT
+
+            # on récupère le lien du problème
+            with open("Problems.txt", "r") as file:
+                for line in file:
+                    numero, idPb = line.split()
+                    if numero == probleme: break
+            
+            await canalResolutions.send(embed=Embed(description=f"<@!{discordUser}> a résolu le problème [#{probleme}](https://www.mathraining.be/problems/{idPb}) ! :clap:", color=0x87CEEB))
+
+    except Exception as exc:
+        await erreur("TASK")
+
+##...
+        
 try:
     aclient = aiohttp.ClientSession()
     bot.run(options['token']) #Token MT
