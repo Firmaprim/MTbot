@@ -14,6 +14,7 @@ from random import randint
 
 import AnnexePendu
 import AnnexeCompteBon
+import AnnexeCompare
 import AopsCore
 
 from traceback import format_exc
@@ -352,6 +353,34 @@ async def info(ctx,user = None):
             #Penser à rajouter les pays à l'avenir ...
         else: await ctx.send(nonRattachee)
     except Exception as exc : await erreur('INFO',ctx)
+
+@bot.command()
+async def compare(ctx, user1, user2 = None):
+    try:
+        if not user2:
+            user2 = user1
+            user1 = f"<@!{ctx.message.author.id}>"
+
+        if user1.isdigit() and len(user1) <= 4:
+            id1 = int(user1)
+        else:
+            user = await GetDiscordUser(ctx, user1)
+            id1 = await FindUser(user, canalInfoBot)
+
+        if user2.isdigit() and len(user2) <= 4:
+            id2 = int(user2)
+        else:
+            user = await GetDiscordUser(ctx, user2)
+            id2 = await FindUser(user, canalInfoBot)
+
+        if not id1 or not id2:
+            await ctx.channel.send(nonRattachee)
+        elif id1 == id2:
+            await ctx.channel.send(f"Pourquoi se comparer avec soi même ?")
+        else:
+            await AnnexeCompare.make_graph(ctx, id1, id2, aclient)
+
+    except Exception as exc: await erreur('COMPARE', ctx)
 
 @bot.command()
 async def corrections(ctx,switch=""):
