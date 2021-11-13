@@ -83,9 +83,10 @@ async def GetDiscordUser(ctx,user) :
     try :
         user1 = get(ctx.guild.members, name=user)
         if user1 == None :
-            user2 = bot.get_user(id=int(user[3:-1]))
-            if user2 == None : return bot.get_user(id=int(user))
-            else : return user2
+            if user[2]=='!' : idDiscord=int(user[3:-1]) #Si <@!123456789...>
+            elif user[0]=='<' : idDiscord=int(user[2:-1]) #Ou si #Si <@123456789...>
+            else : idDiscord=int(user) #Sinon 123456789...
+            return bot.get_user(id=idDiscord)
         else : return user1
     except : return None
     
