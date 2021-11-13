@@ -1,5 +1,5 @@
 from discord import *
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.utils import get
 
 import aiohttp
@@ -45,7 +45,6 @@ wdoptions.add_argument('-headless')
 errmsg ="Une erreur a été rencontrée, contactez un Admin ou un Modérateur."
 perms="Vous n'avez pas les permissions pour effectuer cette commande."
 
-dernierResolu = [None]*5
 nbRequetes = 0
 resolutionsRecentes = set()
 
@@ -513,13 +512,11 @@ async def help(ctx):
 
 @tasks.loop(seconds = 100)
 async def task():
-    global nbRequetes, resolutionsRecentes, canalResolutions, canalInfoBot
-    
+    global nbRequetes
+
     try:
-        url = "http://www.mathraining.be/solvedproblems"
-        async with aclient.get(url) as response:
-            text = await response.text()
-        soup = BeautifulSoup(text, "html.parser")
+        response = await aclient.get("https://www.mathraining.be/solvedproblems")
+        soup = BeautifulSoup(await response.text(), "lxml")
 
         table = soup.find("table")
         for resolution in table.find_all("tr"):
@@ -528,18 +525,17 @@ async def task():
             probleme = elements[5].contents[-1].strip()[1:]
 
             if nbRequetes > 0: # pour éviter de spam au lancement du bot
-                if not (user, probleme) in resolutionsRecentes: # nouvelle résolution
-                    discordUser = FindMT(user, canalInfoBot)
+                if (user, probleme) not in resolutionsRecentes: # nouvelle résolution
+                    discordUser = await FindMT(user, canalInfoBot)
                     if discordUser == 0: continue # on affiche que les utilisateurs du discord MT
 
                     # on récupère le lien du problème
                     with open("Problems.txt", "r") as file:
                         for line in file:
-                            numero, url = map(int, line.split())
-                            if numero == probleme:
-                                urlPb = url; break
+                            numero, idPb = line.split()
+                            if numero == probleme: break
                     
-                    await canalResolutions.send(f"{discordUser} a résolu le problème #{probleme} (http://www.mathraining.be/problems/{urlPb}) !")
+                    await canalResolutions.send(embed=Embed(description=f"<@!{discordUser}> a résolu le problème [#{probleme}](https://www.mathraining.be/problems/{idPb}) ! :clap:", color=0x87CEEB))
             
             resolutionsRecentes.add((user, probleme))
 
