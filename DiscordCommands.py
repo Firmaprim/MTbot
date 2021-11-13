@@ -2,9 +2,14 @@ from discord import *
 from discord.ext import commands, tasks
 from discord.utils import get
 
+import datetime, pytz
+from email.utils import parsedate_to_datetime
+
 import aiohttp
+
 from bs4 import *
 from asyncio import *
+
 from re import compile
 
 from selenium import webdriver
@@ -14,6 +19,7 @@ from random import randint
 
 import AnnexePendu
 import AnnexeCompteBon
+import AnnexeCompare
 import AopsCore
 
 from traceback import format_exc
@@ -44,10 +50,6 @@ wdoptions.add_argument('-headless')
 
 errmsg ="Une erreur a été rencontrée, contactez un Admin ou un Modérateur."
 perms="Vous n'avez pas les permissions pour effectuer cette commande."
-
-statistiques = [0, 0, 0, 0]
-nbRequetes = 0
-resolutionsRecentes = set()
 
 ##_________________Fonctions_Annexes____________________
 
@@ -84,9 +86,10 @@ async def GetDiscordUser(ctx,user) :
     try :
         user1 = get(ctx.guild.members, name=user)
         if user1 == None :
-            user2 = bot.get_user(id=int(user[3:-1]))
-            if user2 == None : return bot.get_user(id=int(user))
-            else : return user2
+            if user[2]=='!' : idDiscord=int(user[3:-1]) #Si <@!123456789...>
+            elif user[0]=='<' : idDiscord=int(user[2:-1]) #Ou si #Si <@123456789...>
+            else : idDiscord=int(user) #Sinon 123456789...
+            return bot.get_user(id=idDiscord)
         else : return user1
     except : return None
     
@@ -164,8 +167,8 @@ async def on_ready():
     canalGeneral = serveur.get_channel(options['IdGeneral'])
     canalResolutions = serveur.get_channel(options['IdResolutions'])
     canalLogsBot = serveur.get_channel(options['IdLogsBot'])
-    
     task.start()
+    
     await bot.change_presence(activity=Game(name="Mathraining | &help"))
 
 @bot.event
@@ -356,6 +359,34 @@ async def info(ctx,user = None):
     except Exception as exc : await erreur('INFO',ctx)
 
 @bot.command()
+async def compare(ctx, user1, user2 = None):
+    try:
+        if not user2:
+            user2 = user1
+            user1 = f"<@!{ctx.message.author.id}>"
+
+        if user1.isdigit() and len(user1) <= 4:
+            id1 = int(user1)
+        else:
+            user = await GetDiscordUser(ctx, user1)
+            id1 = await FindUser(user, canalInfoBot)
+
+        if user2.isdigit() and len(user2) <= 4:
+            id2 = int(user2)
+        else:
+            user = await GetDiscordUser(ctx, user2)
+            id2 = await FindUser(user, canalInfoBot)
+
+        if not id1 or not id2:
+            await ctx.channel.send(nonRattachee)
+        elif id1 == id2:
+            await ctx.channel.send(f"Pourquoi se comparer avec soi même ?")
+        else:
+            await AnnexeCompare.make_graph(ctx, id1, id2, aclient)
+
+    except Exception as exc: await erreur('COMPARE', ctx)
+
+@bot.command()
 async def corrections(ctx,switch=""):
     """Affiche la liste des correcteurs et leurs nombres de corrections"""
     try:
@@ -509,11 +540,15 @@ async def help(ctx):
         await erreur('HELP',ctx)
         await ctx.send("Peut-être avez-vous bloqué les messages privés, ce qui empêche le bot de communiquer avec vous.")
 
-##_____________________TACHES___________________________
+##Tâches d'arrière-plan
+
+last_submission_date = None
+statistiques = [0, 0, 0, 0]
+nbRequetes = 0
 
 @tasks.loop(seconds = 300)
 async def task():
-    global nbRequetes, statistiques
+    global last_submission_date, nbRequetes, statistiques
 
     try:
         # Chiffres remarquables
@@ -537,38 +572,46 @@ async def task():
                     elif i == 3 : message = f"Oh ! Il y a maintenant {(nombre//taillePaquet[i])*taillePaquet[i]} points distribués ! 🥳"
 
                     await canalGeneral.send(embed=Embed(description=message, color=0xF9E430))
-
+        
         # Résolutions récentes
         response = await aclient.get("https://www.mathraining.be/solvedproblems")
         soup = BeautifulSoup(await response.text(), "lxml")
 
+        now = parsedate_to_datetime(response.headers['Date']).replace(second = 0, tzinfo = None)
+        now += datetime.timedelta(hours = int(datetime.datetime.now(pytz.timezone('Europe/Paris')).strftime('%z'))/100)
+        
+        print("now =", now)
+        
+        loop_until = last_submission_date or now
+        last_submission_date = now
+
         table = soup.find("table")
         for resolution in table.find_all("tr"):
             elements = resolution.find_all("td")
+            
+            this_date = datetime.datetime.strptime(elements[0].decode_contents() + " " + elements[1].decode_contents().replace("h", ":"), '%d/%m/%y %H:%M')
+            if this_date >= last_submission_date: continue
+            if this_date < loop_until: break
+
             user = elements[2].find("a")["href"].split("/")[-1]
             probleme = elements[5].contents[-1].strip()[1:]
 
-            if nbRequetes > 0: # pour éviter de spam au lancement du bot
-                if (user, probleme) not in resolutionsRecentes: # nouvelle résolution
-                    discordUser = await FindMT(user, canalInfoBot)
-                    if discordUser == 0: continue # on affiche que les utilisateurs du discord MT
+            discordUser = await FindMT(user, canalInfoBot)
+            if not discordUser: continue # on affiche que les utilisateurs du discord MT
 
-                    # on récupère le lien du problème
-                    with open("Problems.txt", "r") as file:
-                        for line in file:
-                            numero, idPb = line.split()
-                            if numero == probleme: break
-                    
-                    await canalResolutions.send(embed=Embed(description=f"<@!{discordUser}> a résolu le problème [#{probleme}](https://www.mathraining.be/problems/{idPb}) ! :clap:", color=0x87CEEB))
+            # on récupère le lien du problème
+            with open("Problems.txt", "r") as file:
+                for line in file:
+                    numero, idPb = line.split()
+                    if numero == probleme: break
             
-            resolutionsRecentes.add((user, probleme))
+            await canalResolutions.send(embed=Embed(description=f"<@!{discordUser}> a résolu le problème [#{probleme}](https://www.mathraining.be/problems/{idPb}) ! :clap:", color=0x87CEEB))
 
-        nbRequetes += 1
     except Exception as exc:
         await erreur("TASK")
 
-#______________________________________________________________
-
+##...
+        
 try:
     aclient = aiohttp.ClientSession()
     bot.run(options['token']) #Token MT
