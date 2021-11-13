@@ -45,6 +45,7 @@ wdoptions.add_argument('-headless')
 errmsg ="Une erreur a été rencontrée, contactez un Admin ou un Modérateur."
 perms="Vous n'avez pas les permissions pour effectuer cette commande."
 
+statistiques = [0, 0, 0, 0]
 nbRequetes = 0
 resolutionsRecentes = set()
 
@@ -508,13 +509,36 @@ async def help(ctx):
         await erreur('HELP',ctx)
         await ctx.send("Peut-être avez-vous bloqué les messages privés, ce qui empêche le bot de communiquer avec vous.")
 
-##Tâches d'arrière-plan
+##_____________________TACHES___________________________
 
-@tasks.loop(seconds = 100)
+@tasks.loop(seconds = 300)
 async def task():
-    global nbRequetes
+    global nbRequetes, statistiques
 
     try:
+        # Chiffres remarquables
+        response = await aclient.get("http://www.mathraining.be/")
+        soup = BeautifulSoup(await response.text(), "lxml")
+
+        taillePaquet = [100, 1000, 10000, 50000] # paliers utilisateurs; problèmes; exercices; points
+
+        table = soup.find("table")
+        for i, stat in enumerate(table.find_all("tr")):
+            nombre = int("".join(stat.find("td").text.split()))
+
+            if nombre//taillePaquet[i] > statistiques[i]:
+                if statistiques[i] == 0: # pour éviter de spam au lancement du bot
+                    statistiques[i] = nombre//taillePaquet[i]
+                else:
+                    statistiques[i] = nombre//taillePaquet[i]
+                    if i == 0 : message = f"Oh ! Il y a maintenant {(nombre//taillePaquet[i])*taillePaquet[i]} utilisateurs sur Mathraining ! 🥳"
+                    elif i == 1 : message = f"Oh ! Il y a maintenant {(nombre//taillePaquet[i])*taillePaquet[i]} problèmes résolus ! 🥳"
+                    elif i == 2 : message = f"Oh ! Il y a maintenant {(nombre//taillePaquet[i])*taillePaquet[i]} exercices résolus ! 🥳"
+                    elif i == 3 : message = f"Oh ! Il y a maintenant {(nombre//taillePaquet[i])*taillePaquet[i]} points distribués ! 🥳"
+
+                    await canalGeneral.send(embed=Embed(description=message, color=0xF9E430))
+
+        # Résolutions récentes
         response = await aclient.get("https://www.mathraining.be/solvedproblems")
         soup = BeautifulSoup(await response.text(), "lxml")
 
