@@ -165,7 +165,6 @@ async def on_ready():
     canalResolutions = serveur.get_channel(options['IdResolutions'])
     canalLogsBot = serveur.get_channel(options['IdLogsBot'])
     
-    #bot.loop.create_task(background_tasks_mt())
     task.start()
     await bot.change_presence(activity=Game(name="Mathraining | &help"))
 
@@ -511,49 +510,6 @@ async def help(ctx):
         await ctx.send("Peut-être avez-vous bloqué les messages privés, ce qui empêche le bot de communiquer avec vous.")
 
 ##Tâches d'arrière-plan
-
-async def background_tasks_mt():
-    debut=0
-    numsOld=[0]*4
-    await bot.wait_until_ready()
-    while not bot.is_closed :
-        try:
-            #Chiffres remarquables 
-            async with aclient.get("http://www.mathraining.be/") as response: text = await response.text()
-            soup = BeautifulSoup(text,"lxml")
-            info = soup.find_all('td',attrs={"class":u"left"})
-            nums=list(map(lambda t : t.getText(),info))
-            if debut == 0: print("Le bot vient juste d'être lancé !")
-            elif numsOld != nums and (0 in list(map(lambda x: int(x)%100,nums[0:2])) or 0 in list(map(lambda x: int(x)%1000,nums[2:4]))) :
-                if nums[0] != numsOld[0] and int(nums[0])%100==0: msg = "Oh ! Il y a maintenant " + nums[0] + " utilisateurs sur Mathraining !🥳\n"
-                else: msg = "Il y a " + nums[0] + " utilisateurs sur Mathraining.\n"
-                if nums[1] != numsOld[1] and int(nums[1])%100==0: msg += "Oh ! Il y a maintenant " + nums[1] + " problèmes résolus ! 🥳\n"
-                else: msg += "Il y a " + nums[1] + " problèmes résolus.\n"
-                if nums[2] != numsOld[2] and int(nums[2])%1000==0: msg += "Oh ! Il y a maintenant " + nums[2] + " exercices résolus ! 🥳\n"
-                else: msg += "Il y a " + nums[2] + " exercices résolus.\n"
-                if nums[3] != numsOld[3] and int(nums[3])%1000==0: msg += "Oh ! Il y a maintenant " + nums[3] + " points distribués ! 🥳"
-                else: msg += "Il y a " + nums[3] + " points distribués."
-                numsOld=nums
-                await canalGeneral.send(msg)
-            
-            #Résolutions récentes
-            async with aclient.get("http://www.mathraining.be/solvedproblems") as response: text = await response.text()
-            soup = BeautifulSoup(text, "html.parser")
-            cible = soup.find_all('tr');level = 1
-            for i in range(0, len(cible)):
-                td = BeautifulSoup(str(cible[i]), "lxml").find_all('td')
-                if len(td) > 3:
-                    if (td[3].getText().replace(" ", "")[4]).isdigit() and int(td[3].getText().replace(" ", "")[4]) == level:
-                        msg = td[2].getText() + " vient juste de résoudre le problème " + td[3].getText().replace(" ", "").replace("\n", "")
-                        if dernierResolu[level-1] != msg:
-                            dernierResolu[level-1] = msg
-                            if debut != 0: await canalResolutions.send(msg);print(msg)
-                        level += 1
-                        if level == 6: break
-            debut = 1
-            await sleep(10)
-        except Exception as exc :
-            await erreur('BACKGROUND',ctx);continue
 
 @tasks.loop(seconds = 100)
 async def task():
