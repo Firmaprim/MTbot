@@ -10,6 +10,7 @@ Dépendances sur pip :
  - selenium
  - PyYAML
  - Matplotlib
+ - pytz
 
 Autres dépendances :
  - Geckodriver : https://github.com/mozilla/geckodriver/releases (à mettre à la racine)
