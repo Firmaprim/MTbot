@@ -115,24 +115,29 @@ async def FindMT(idMT: int, canal) :
                 break
         return user #0 si n'est pas dans la liste
 
-def Connexion() :
-    global driver
-    driver = webdriver.Firefox(options=wdoptions)
-    driver.get("https://mathraining.be")
-    driver.find_element_by_link_text("Connexion").click()
-    username = driver.find_element_by_id("tf1")
-    username.clear();username.send_keys(options['user'])
-    
-    password = driver.find_element_by_name("session[password]")
-    password.clear();password.send_keys(options['password'])
-    
-    driver.find_element_by_name("commit").click()    
-    
-def Deconnexion() :
-    driver.find_element_by_xpath("//a[not(contains(text(), 'Théorie')) and not(contains(text(), 'Statistiques')) and not(contains(text(), 'Problèmes')) and @class='dropdown-toggle']").click()
-    driver.find_element_by_link_text("Déconnexion").click()
-    driver.quit()
-    
+regex_auth_token = compile(r'<input type="hidden" name="authenticity_token" value="([A-Za-z0-9+/=]+)" />')
+async def mt_connexion(aclient):
+    try:
+        resp = await aclient.get('https://www.mathraining.be/')
+        authenticity_token = regex_auth_token.search(await resp.text()).group(1)
+        await aclient.post('https://www.mathraining.be/sessions', data = {
+            'utf8': "✓",
+            'authenticity_token': authenticity_token,
+            'session[email]': options['user'],
+            'session[password]': options['password'],
+            'session[remember_me]': "0",
+        })
+    except (IndexError, AttributeError): pass # déjà connecté
+async def mt_send_mp(idMT, msg):
+    resp = await aclient.get(f'https://www.mathraining.be/discussions/new')
+    authenticity_token = regex_auth_token.search(await resp.text()).group(1)
+    await aclient.post('https://www.mathraining.be/discussions', data = {
+        'utf8': "✓",
+        'authenticity_token': authenticity_token,
+        'destinataire': f"{idMT}",
+        'content': msg,
+    })
+
 async def erreur(e,ctx=None,switch=1) :
     err="- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -"+'\n'+format_exc()+"- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -";print(err)
     err="```diff\n"+err+"```"
@@ -217,18 +222,14 @@ async def ask(ctx,idMTnew: int):
             elif Score >= 3200 or Score == 1 : await msay.edit(content="Le compte Mathraining renseigné est au moins Expert ou Administrateur, il faut demander à un Admin/Modo du serveur de vous relier !")
             elif Score == 2 : await msay.edit(content="Le compte Mathraining renseigné n'existe pas !")
             else :
-                try :
-                    Connexion()
-                    driver.get("https://www.mathraining.be/discussions/new?qui="+str(idMTnew)) #Sélectionne automatiquement la personne dans les messages.
-                    msg="Bonjour !  :-)\n\n Vous avez bien demandé à relier votre compte mathraining avec le compte Discord [b]"+str(user)+"[/b] sur le [url=https://www.mathraining.be/subjects/365?q=0]serveur Mathraining[/url] ?\n Répondez [b]\"Oui\"[/b] (sans aucun ajout) à ce message pour confirmer votre demande, sinon par défaut vous ne serez pas relié. \n Vous devez ensuite taper la commande [b]&verify[/b] sur Discord pour finaliser la demande.\n\n [b]Seul le dernier message de cette conversation sera lu pour confirmer votre demande.[/b] \n[i][u]NB[/u] : Il s'agit d'un message automatique. N'espérez pas communiquer avec ce compte Mathraining.\n[/i]"
-                    #supprimé : (A vrai dire, j'ai activé le service sur mon compte pour l'instant. Vous pouvez tout de même me parler ou me signaler un bug ...)
-                    m = driver.find_element_by_id("MathInput")
-                    m.clear();m.send_keys(msg)
-                    driver.find_element_by_name("commit").click()
-                    Deconnexion()
-                    await canalEnAttente.send(str(user.mention)+ " " + str(idMTnew))
-                    await msay.edit(content="Vous venez de recevoir un message privé sur le site. Suivez les instructions demandées.")
-                except : await msay.edit(content="Ce service est temporairement indisponible, veuillez réessayer plus tard.\n Vous pouvez toutefois demander à un Admin ou un Modérateur de vous relier manuellement.")
+                msg="Bonjour !  :-)\n\n Vous avez bien demandé à relier votre compte mathraining avec le compte Discord [b]"+str(user)+"[/b] sur le [url=https://www.mathraining.be/subjects/365?q=0]serveur Mathraining[/url] ?\n Répondez [b]\"Oui\"[/b] (sans aucun ajout) à ce message pour confirmer votre demande, sinon par défaut vous ne serez pas relié. \n Vous devez ensuite taper la commande [b]&verify[/b] sur Discord pour finaliser la demande.\n\n [b]Seul le dernier message de cette conversation sera lu pour confirmer votre demande.[/b] \n[i][u]NB[/u] : Il s'agit d'un message automatique. N'espérez pas communiquer avec ce compte Mathraining.\n[/i]"
+                #supprimé : (A vrai dire, j'ai activé le service sur mon compte pour l'instant. Vous pouvez tout de même me parler ou me signaler un bug ...)
+
+                await mt_connexion(aclient)
+                await mt_send_mp(idMTnew, msg)
+                
+                await canalEnAttente.send(str(user.mention)+ " " + str(idMTnew))
+                await msay.edit(content="Vous venez de recevoir un message privé sur le site. Suivez les instructions demandées.")
         elif idMTold == idMTnew and idMTold != 0 : await msay.edit(content="Vous êtes déjà relié au bot avec le même id !")
         elif idMTatt == idMTnew and idMTatt !=0 : await msay.edit(content="Vous avez déjà fait une demande avec le même id !")
         elif idMTatt != idMTnew and idMTold ==0 : await msay.edit(content="Vous avez déjà fait une demande avec l'id "+str(idMTatt)+".\n"+pascontent+"\n"+contact)
@@ -257,38 +258,37 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
             else : await msay.edit(content=str(user2)+ " est déjà lié avec l'id "+str(await FindUser(user2,canalInfoBot))+".")
             
         elif idMT!=0 :                            ##Sinon ignore les autres arguments ...
-            try :
-                Connexion()
-                driver.get("https://www.mathraining.be/discussions/new?qui="+str(idMT))
+            await mt_connexion(aclient)
+            
+            resp = await aclient.get(f'https://www.mathraining.be/discussions/new?qui={idMT}')
+            soup = BeautifulSoup(await resp.text(), features='lxml')
+            try:
+                verified = soup.select_one("#all-messages > div > div:last-child").text.strip().lower().startswith("oui")
+            except:
+                verified = False
+
+            if verified:
+                msg="Vos comptes Discord et Mathraining sont désormais reliés !"
+                await mt_send_mp(idMT, msg)
+
+                await canalInfoBot.send(str(user.mention)+ " " + str(idMT))
+
+                async for message in canalEnAttente.history(limit=1000):
+                    msg = message.content.split()
+                    e1,e2=[2,3][user.mention[2]=='!'],[2,3][msg[0][2]=='!']
+                    if msg[0][e2:-1] == user.mention[e1:-1]: 
+                        await message.delete();break
+                        
+                role = roleScore(await GetMTScore(idMT))
+                servRole = get(serveur.roles, name = role)
+                await user.add_roles(servRole)
                 
-                if driver.find_element_by_xpath("//*[contains(@id, 'normal')]").text[:-20] in ['Oui','oui'] :##Si c'est 'Oui', c'est bon ! (En fait prend le premier avec un id avec 'normal')
-                    msg="Vos comptes Discord et Mathraining sont désormais reliés !"
-                    m = driver.find_element_by_id("MathInput")
-                    m.clear();m.send_keys(msg)
-                    driver.find_element_by_name("commit").click()
-                    Deconnexion()
-                    
-                    await canalInfoBot.send(str(user.mention)+ " " + str(idMT))
-                    
-                    async for message in canalEnAttente.history(limit=1000):
-                        msg = message.content.split()
-                        e1,e2=[2,3][user.mention[2]=='!'],[2,3][msg[0][2]=='!']
-                        if msg[0][e2:-1] == user.mention[e1:-1]: 
-                            await message.delete();break
-                            
-                    role = roleScore(await GetMTScore(idMT))
-                    servRole = get(serveur.roles, name = role)
-                    await user.add_roles(servRole)
-                    
-                    await msay.edit(content="La demande de lien a été acceptée par le compte Mathraining ! Vous obtenez le rôle `"+role+"`! :clap:")
-                else :
-                    msg="Les comptes Discord et Mathraining en question ne seront pas reliés."
-                    m = driver.find_element_by_id("MathInput")
-                    m.clear();m.send_keys(msg)
-                    driver.find_element_by_name("commit").click()
-                    Deconnexion()
-                    await msay.edit(content="La demande de lien a été refusée par le compte Mathraining.")
-            except : await msay.edit(content="Ce service est temporairement indisponible, veuillez réessayer plus tard.\n Vous pouvez toutefois demander à un Admin ou un Modérateur de vous relier manuellement.")
+                await msay.edit(content="La demande de lien a été acceptée par le compte Mathraining ! Vous obtenez le rôle `"+role+"`! :clap:")
+            else :
+                msg="Les comptes Discord et Mathraining en question ne seront pas reliés."
+                await mt_send_mp(idMT, msg)
+
+                await msay.edit(content="La demande de lien a été refusée par le compte Mathraining.")
             
         elif (await FindUser(user,canalInfoBot))!=0 : await msay.edit(content="Vous êtes déjà lié avec l'id "+str(await FindUser(user,canalInfoBot))+".")
         else : await msay.edit(content="Vous n'avez fait aucune demande pour lier vos comptes Discord et Mathraining.")
