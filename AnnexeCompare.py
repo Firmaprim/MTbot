@@ -23,7 +23,7 @@ async def plot_user(user_id, aclient, ctx):
     soup = BeautifulSoup(await resp.text(), features='lxml')
 
     if soup.select_one('div.error'):
-        await ctx.channel.send(f"{user_id}: Utilisateur introuvable")
+        await ctx.channel.send(f"**{user_id}**: Utilisateur introuvable.")
         return 0, 0, 0, 0
     
     resolutions_table = soup.select_one('table.table.middle_aligned')
@@ -31,7 +31,7 @@ async def plot_user(user_id, aclient, ctx):
     name = soup.select_one("title").text.replace('| Mathraining', '').strip()
 
     if not resolutions_table:
-        await ctx.channel.send(f"Impossible de se comparer avec **{name}**")
+        await ctx.channel.send(f"Impossible de se comparer avec **{name}**.")
         return 0, 0, 0, 0
 
     points = 0
@@ -56,7 +56,7 @@ async def plot_user(user_id, aclient, ctx):
             y.append(points)
     
     if not x: # 0 points
-        await ctx.channel.send(f"Impossible de se comparer avec **{name}**")
+        await ctx.channel.send(f"Impossible de se comparer avec **{name}**.")
         return 0, 0, 0, 0
     
     x.insert(0, x[0])
