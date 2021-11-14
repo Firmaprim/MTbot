@@ -369,7 +369,7 @@ async def compare(ctx, user1, user2 = None):
         id2 = await FindMTUser(user2, ctx, print_msgs = True)
 
         if id1 == id2: await ctx.channel.send(f"Pourquoi se comparer avec soi même ?")
-        else: await AnnexeCompare.make_graph(ctx, id1, id2, aclient)
+        elif id1 and id2 : await AnnexeCompare.make_graph(ctx, id1, id2, aclient)
     except Exception as exc: await erreur('COMPARE', ctx)
 
 @bot.command()
