@@ -581,8 +581,6 @@ async def task():
         now = parsedate_to_datetime(response.headers['Date']).replace(second = 0, tzinfo = None)
         now += datetime.timedelta(hours = int(datetime.datetime.now(pytz.timezone('Europe/Paris')).strftime('%z'))/100)
         
-        print("now =", now)
-        
         loop_until = last_submission_date or now
         last_submission_date = now
 
