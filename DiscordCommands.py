@@ -219,17 +219,15 @@ async def ask(ctx,idMTnew: int):
             UserId,UserIdatt = (await FindMT(idMTnew, canalInfoBot)),(await FindMT(idMTnew,canalEnAttente))
             if UserId != 0 : await msay.edit(content="Ce compte Mathraining appartient déjà à "+str(bot.get_user(UserId))+" !")
             elif UserIdatt != 0: await msay.edit(content="Ce compte Mathraining a déjà été demandé à être relié par "+str(bot.get_user(UserIdatt))+" !")
-            elif Score >= 3200 or Score == 1 : await msay.edit(content="Le compte Mathraining renseigné est au moins Expert ou Administrateur, il faut demander à un Admin/Modo du serveur de vous relier !")
+            elif Score >= 5000 or Score == 1 : await msay.edit(content="Le compte Mathraining renseigné est au moins Maître ou Administrateur, il faut demander à un Admin/Modo du serveur de vous relier !")
             elif Score == 2 : await msay.edit(content="Le compte Mathraining renseigné n'existe pas !")
             else :
                 msg="Bonjour !  :-)\n\n Vous avez bien demandé à relier votre compte mathraining avec le compte Discord [b]"+str(user)+"[/b] sur le [url=https://www.mathraining.be/subjects/365?q=0]serveur Mathraining[/url] ?\n Répondez [b]\"Oui\"[/b] (sans aucun ajout) à ce message pour confirmer votre demande, sinon par défaut vous ne serez pas relié. \n Vous devez ensuite taper la commande [b]&verify[/b] sur Discord pour finaliser la demande.\n\n [b]Seul le dernier message de cette conversation sera lu pour confirmer votre demande.[/b] \n[i][u]NB[/u] : Il s'agit d'un message automatique. N'espérez pas communiquer avec ce compte Mathraining.\n[/i]"
-                #supprimé : (A vrai dire, j'ai activé le service sur mon compte pour l'instant. Vous pouvez tout de même me parler ou me signaler un bug ...)
-
                 await mt_connexion(aclient)
                 await mt_send_mp(idMTnew, msg)
-                
                 await canalEnAttente.send(str(user.mention)+ " " + str(idMTnew))
                 await msay.edit(content="Vous venez de recevoir un message privé sur le site. Suivez les instructions demandées.")
+                    
         elif idMTold == idMTnew and idMTold != 0 : await msay.edit(content="Vous êtes déjà relié au bot avec le même id !")
         elif idMTatt == idMTnew and idMTatt !=0 : await msay.edit(content="Vous avez déjà fait une demande avec le même id !")
         elif idMTatt != idMTnew and idMTold ==0 : await msay.edit(content="Vous avez déjà fait une demande avec l'id "+str(idMTatt)+".\n"+pascontent+"\n"+contact)
@@ -262,10 +260,8 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
             
             resp = await aclient.get(f'https://www.mathraining.be/discussions/new?qui={idMT}')
             soup = BeautifulSoup(await resp.text(), features='lxml')
-            try:
-                verified = soup.select_one("#all-messages > div > div:last-child").text.strip().lower().startswith("oui")
-            except:
-                verified = False
+            try: verified = soup.select_one("#all-messages > div > div:last-child").text.strip().lower().startswith("oui")
+            except: verified = False
 
             if verified:
                 msg="Vos comptes Discord et Mathraining sont désormais reliés !"
