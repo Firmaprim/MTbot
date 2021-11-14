@@ -42,7 +42,7 @@ colors = {'Novice' : 0x888888, 'Débutant' : 0x08D508, 'Débutante' : 0x08D508, 
           'Expérimentée' : 0xDD77FF, 'Chevronné' : 0xA000A0, 'Chevronnée' : 0xA000A0, 'Expert' : 0xFFA000, 'Experte' : 0xFFA000,
           'Maître' : 0xFF4400, 'Grand Maître' : 0xCC0000}
 
-nonRattachee = "Cette personne n'est pas rattachée à un compte Mathraining.\nTaper la commande `&help` pour plus d'informations."
+msghelp = "\nTaper la commande `&help` pour plus d'informations."
 
 #Firefox-headless
 wdoptions = webdriver.FirefoxOptions()
@@ -95,7 +95,7 @@ async def GetDiscordUser(ctx,user) :
     
 async def FindUser(user: Member,canal) :
         idMT = 0
-        if user == None : return 0
+        if user == None : return 0 #Si l'utilisateur n'existe pas
         async for message in canal.history(limit=1000):
             msg = message.content.split()
             e1=[2,3][user.mention[2]=='!']
@@ -104,6 +104,20 @@ async def FindUser(user: Member,canal) :
                 idMT = int(msg[1])
                 break
         return idMT #0 si n'est pas dans la liste
+        
+async def FindMTUser(user_str : str, ctx, print_msgs = True):
+    if user_str.isdigit() and len(user_str) <= 4:
+        return int(user_str)
+    else:
+        user = await GetDiscordUser(ctx, user_str)
+        if not user and print_msgs:
+            await ctx.channel.send(f"**{user_str}**: Utilisateur introuvable."+msghelp, allowed_mentions=AllowedMentions(users=False))
+            return 0
+        id = await FindUser(user, canalInfoBot)
+        if not id and print_msgs:
+            await ctx.channel.send(f"L'utilisateur <@!{user.id}> n'est pas rattaché à un compte Mathraining."+msghelp, allowed_mentions=AllowedMentions(users=False))
+            return 0
+        return id
 
 async def FindMT(idMT: int, canal) :
         user = 0; test= str(idMT)
@@ -116,6 +130,7 @@ async def FindMT(idMT: int, canal) :
         return user #0 si n'est pas dans la liste
 
 regex_auth_token = compile(r'<input type="hidden" name="authenticity_token" value="([A-Za-z0-9+/=]+)" />')
+
 async def mt_connexion(aclient):
     try:
         resp = await aclient.get('https://www.mathraining.be/')
@@ -128,6 +143,7 @@ async def mt_connexion(aclient):
             'session[remember_me]': "0",
         })
     except (IndexError, AttributeError): pass # déjà connecté
+          
 async def mt_send_mp(idMT, msg):
     resp = await aclient.get(f'https://www.mathraining.be/discussions/new')
     authenticity_token = regex_auth_token.search(await resp.text()).group(1)
@@ -226,8 +242,7 @@ async def ask(ctx,idMTnew: int):
                 await mt_connexion(aclient)
                 await mt_send_mp(idMTnew, msg)
                 await canalEnAttente.send(str(user.mention)+ " " + str(idMTnew))
-                await msay.edit(content="Vous venez de recevoir un message privé sur le site. Suivez les instructions demandées.")
-                    
+                await msay.edit(content="Vous venez de recevoir un message privé sur le site. Suivez les instructions demandées.") 
         elif idMTold == idMTnew and idMTold != 0 : await msay.edit(content="Vous êtes déjà relié au bot avec le même id !")
         elif idMTatt == idMTnew and idMTatt !=0 : await msay.edit(content="Vous avez déjà fait une demande avec le même id !")
         elif idMTatt != idMTnew and idMTold ==0 : await msay.edit(content="Vous avez déjà fait une demande avec l'id "+str(idMTatt)+".\n"+pascontent+"\n"+contact)
@@ -256,8 +271,9 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
             else : await msay.edit(content=str(user2)+ " est déjà lié avec l'id "+str(await FindUser(user2,canalInfoBot))+".")
             
         elif idMT!=0 :                            ##Sinon ignore les autres arguments ...
+                
             await mt_connexion(aclient)
-            
+
             resp = await aclient.get(f'https://www.mathraining.be/discussions/new?qui={idMT}')
             soup = BeautifulSoup(await resp.text(), features='lxml')
             try: verified = soup.select_one("#all-messages > div > div:last-child").text.strip().lower().startswith("oui")
@@ -274,7 +290,7 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
                     e1,e2=[2,3][user.mention[2]=='!'],[2,3][msg[0][2]=='!']
                     if msg[0][e2:-1] == user.mention[e1:-1]: 
                         await message.delete();break
-                        
+
                 role = roleScore(await GetMTScore(idMT))
                 servRole = get(serveur.roles, name = role)
                 await user.add_roles(servRole)
@@ -295,8 +311,8 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
 async def update(ctx,user: Member = None):
     '''Pour mettre à jour son/ses roles'''
     try:
-        if user == None : user = ctx.message.author
-        idMT=(await FindUser(user,canalInfoBot))
+        if user == None : user = str(ctx.message.author.id)
+        idMT = (await FindMTUser(str(user.id),ctx,print_msgs=True))
 
         if idMT != 0:
             role = roleScore(await GetMTScore(idMT))
@@ -311,26 +327,15 @@ async def update(ctx,user: Member = None):
                 if user == ctx.message.author : await ctx.send("Bravo, vous obtenez le rôle `"+role+"`! :clap:")
                 else : await ctx.send(str(user)+" obtient désormais le rôle `"+role+"`! :clap:")
             else : await ctx.send("Déjà à jour !")
-                
-        else: await ctx.send(nonRattachee)
     except Exception as exc : await erreur('UPDATE',ctx)
 
 @bot.command(pass_context=True)
 async def info(ctx,user = None):
     """Affiche les stats d'un utilisateur lié"""
     try:
-        try : 
-            num=int(user)
-            if len(user) <= 4 : idMT = num
-            else : 
-                user = (await GetDiscordUser(ctx,user))
-                idMT = (await FindUser(user,canalInfoBot))
-        except : 
-            if user == None :
-                user = ctx.message.author
-            else :
-                user = (await GetDiscordUser(ctx,user))
-            idMT = (await FindUser(user,canalInfoBot))
+        if user == None : user = str(ctx.message.author.id)
+        idMT = (await FindMTUser(user,ctx,print_msgs=True))
+
         if idMT != 0:
             url="http://www.mathraining.be/users/"+str(idMT)
             async with aclient.get(url) as response: text = await response.text()
@@ -351,7 +356,6 @@ async def info(ctx,user = None):
 
             await ctx.send(embed=embed)
             #Penser à rajouter les pays à l'avenir ...
-        else: await ctx.send(nonRattachee)
     except Exception as exc : await erreur('INFO',ctx)
 
 @bot.command()
@@ -360,26 +364,12 @@ async def compare(ctx, user1, user2 = None):
         if not user2:
             user2 = user1
             user1 = f"<@!{ctx.message.author.id}>"
+            
+        id1 = await FindMTUser(user1, ctx, print_msgs = True)
+        id2 = await FindMTUser(user2, ctx, print_msgs = True)
 
-        if user1.isdigit() and len(user1) <= 4:
-            id1 = int(user1)
-        else:
-            user = await GetDiscordUser(ctx, user1)
-            id1 = await FindUser(user, canalInfoBot)
-
-        if user2.isdigit() and len(user2) <= 4:
-            id2 = int(user2)
-        else:
-            user = await GetDiscordUser(ctx, user2)
-            id2 = await FindUser(user, canalInfoBot)
-
-        if not id1 or not id2:
-            await ctx.channel.send(nonRattachee)
-        elif id1 == id2:
-            await ctx.channel.send(f"Pourquoi se comparer avec soi même ?")
-        else:
-            await AnnexeCompare.make_graph(ctx, id1, id2, aclient)
-
+        if id1 == id2: await ctx.channel.send(f"Pourquoi se comparer avec soi même ?")
+        else: await AnnexeCompare.make_graph(ctx, id1, id2, aclient)
     except Exception as exc: await erreur('COMPARE', ctx)
 
 @bot.command()
@@ -403,15 +393,14 @@ async def corrections(ctx,switch=""):
     except Exception as exc : await erreur('CORRECTIONS',ctx)
 
 @bot.command()
-async def solved(ctx, user: Member, idpb: int):
+async def solved(ctx, user, idpb: int):
     """Indique si le problème numéro numPb a été résolu par l'utilisateur"""
     try:
-        idMT=(await FindUser(user,canalInfoBot))
+        idMT=(await FindMTUser(user,ctx,print_msgs=True))
         if idMT != 0:
             async with aclient.get(f"http://mathraining.be/users/{idMT}") as resp : response = await resp.text()
             namepb = '#' + str(idpb)
             await ctx.send("Problème"+[" non "," "][namepb in response]+"résolu par l'utilisateur.")
-        else: await ctx.send(nonRattachee)
     except Exception as exc : await erreur('SOLVED',ctx)
 
 @bot.command()
