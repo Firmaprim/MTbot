@@ -263,6 +263,8 @@ async def on_member_join(member):
 async def on_command_error(ctx, error):
     if type(error) == commands.errors.MemberNotFound:
         await ctx.channel.send(f"**{error.argument}**: Utilisateur introuvable."+msghelp, allowed_mentions=AllowedMentions(users=False))
+    else:
+        raise error
 
 @bot.event
 async def on_raw_message_delete(payload):
