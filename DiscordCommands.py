@@ -168,7 +168,7 @@ def log_errors(name, switch=1): # use after @bot.command()
         async def f(*args, **kwargs):
             try: return await func(*args, **kwargs)
             except Exception as exc:
-                if type(exc) != commands.errors.BadArgument:
+                if type(exc) != Exception:
                     if len(args) > 0 and type(args[0]) == commands.Context:
                         await erreur(name, args[0], switch=switch)
                     else:
