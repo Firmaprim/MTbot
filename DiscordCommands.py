@@ -30,7 +30,7 @@ bot = commands.Bot(command_prefix='&', description='Bot Mathraining, merci aux g
 
 #____________________CONSTANTES_______________________________
 
-options = safe_load(open('options.yml'))
+with open('options.yml', 'r') as options_file : options = safe_load(options_file)
 
 NomsRoles = ["Grand Maitre", "Maitre", "Expert", "Chevronné", "Expérimenté", "Qualifié", "Compétent", "Initié", "Débutant", "Novice"]
 
@@ -272,7 +272,7 @@ async def on_raw_message_delete(payload):
         del users_links[msg_ids_links[int(payload.message_id)]]
         del msg_ids_links[int(payload.message_id)]
     if payload.channel_id == canalEnAttente.id:
-        del users_links_tmp[msg_ids_links_tmp[int(payload.message_id)]] # may fail if there is two messages for same user
+        del users_links_tmp[msg_ids_links_tmp[int(payload.message_id)]]
         del msg_ids_links_tmp[int(payload.message_id)]
 
 @bot.event
