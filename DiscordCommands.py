@@ -117,9 +117,9 @@ class MTid(commands.Converter):
         if id: return id
         else: raise Exception
 
-def FindMT(idMT: int) :
+def FindMT(idMT: int, en_attente=False) :
     idMT = int(idMT)
-    for discord, mt in users_links.items():
+    for discord, mt in (users_links if not en_attente else users_links_tmp).items():
         if idMT == mt: return discord
     return 0
 
@@ -148,7 +148,7 @@ async def mt_send_mp(idMT, msg):
         'content': msg,
     }, allow_redirects=False)
     if req.status != 302:
-        raise Exception("Impossible d'envoyer un message privé sur mathraining. Vérifiez que le login/mot de passe sont corrects.")
+        raise RuntimeError("Impossible d'envoyer un message privé sur mathraining. Vérifiez que le login/mot de passe sont corrects.")
 
 async def erreur(e,ctx=None,switch=1) :
     err="- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -"+'\n'+format_exc()+"- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -";print(err)
@@ -321,7 +321,7 @@ async def ask(ctx,idMTnew: int):
     idMTold, idMTatt = FindUser(user), FindUser(user, True)
     if idMTold == 0 and idMTatt == 0 :  
         Score=await GetMTScore(idMTnew)
-        UserId,UserIdatt = FindMT(idMTnew), FindMT(idMTnew)
+        UserId,UserIdatt = FindMT(idMTnew), FindMT(idMTnew, True)
         if UserId != 0 : await msay.edit(content="Ce compte Mathraining appartient déjà à "+str(bot.get_user(UserId))+" !")
         elif UserIdatt != 0: await msay.edit(content="Ce compte Mathraining a déjà été demandé à être relié par "+str(bot.get_user(UserIdatt))+" !")
         elif Score >= 5000 or Score == 1 : await msay.edit(content="Le compte Mathraining renseigné est au moins Maître ou Administrateur, il faut demander à un Admin/Modo du serveur de vous relier !")
