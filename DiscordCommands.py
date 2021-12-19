@@ -263,7 +263,7 @@ async def on_member_join(member):
 async def on_command_error(ctx, error):
     if type(error) == commands.errors.MemberNotFound:
         await ctx.channel.send(f"**{error.argument}**: Utilisateur introuvable."+msghelp, allowed_mentions=AllowedMentions(users=False))
-    else:
+    elif type(error) != Exception and type(error) != commands.errors.ConversionError:
         raise error
 
 @bot.event
