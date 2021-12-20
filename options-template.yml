@@ -11,12 +11,17 @@ password: MDP_MT
 AdrienFail: https://cdn.discordapp.com/attachments/515636703155847225/882288483195047946/Screenshot_20190921_083716.jpg
 FirmaFail: https://cdn.discordapp.com/attachments/515636703155847225/624856715766267905/Screenshot_20190921_083716.jpg
 
-#Id canaux et serveur :
+#Id serveur :
 IdServeur: 000000000000000000
+
+#Id canaux :
 IdInfoBot: 000000000000000000
 IdEnAttente: 000000000000000000
 IdGeneral: 000000000000000000
 IdResolutions: 000000000000000000
 IdLogsBot: 000000000000000000
 IdRoles: 000000000000000000
+IdEntreesSorties: 000000000000000000
+
+#Id messages :
 IdMessageRoles: 0
