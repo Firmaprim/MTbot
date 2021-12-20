@@ -608,7 +608,6 @@ async def resolutions_setup(ctx):
         except errors.Forbidden:
             await ctx.send(f"Erreur. Vérifiez que le bot a bien les permissions pour poster dans {canalRoles.mention}.")
 
-
 ##Tâches d'arrière-plan
 
 last_submission_date = None
@@ -689,11 +688,6 @@ async def task():
 
 ##...
 
-try:
-    bot.run(options['token']) #Token MT
-except errors.LoginFailure as e:
-    print(e)
-    #driver.quit()
-else:
-    run(aclient.close())
-    #driver.quit()
+try: bot.run(options['token']) #Token MT
+except errors.LoginFailure as e: print(e)
+else: run(aclient.close())
