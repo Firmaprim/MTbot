@@ -599,14 +599,14 @@ async def resolutions_setup(ctx):
     if ctx.guild == serveur and "Admin" in (y.name for y in ctx.author.roles):
         ping_emoji = get(serveur.emojis, name="ping")
         if not ping_emoji:
-            await ctx.send(f"Emoji ping introuvable")
+            await ctx.send(f"Emoji ping introuvable. Avez-vous bien un emoji nommé \"ping\" ?")
             return
         try:
             msg = await canalRoles.send(f"Souhaitez-vous être ping pour les {canalResolutions.mention} ?")
             await msg.add_reaction(ping_emoji)
-            await ctx.send(f"Mettez```IdMessageRoles: {msg.id}``` dans `options.yml` puis rédémarrez le bot.")
+            await ctx.send(f"Mettez```IdMessageRoles: {msg.id}``` dans `options.yml` puis redémarrez le bot.")
         except errors.Forbidden:
-            await ctx.send(f"Erreur. Vérifiez que le bot a bien les permissions pour poster dans {canalRoles.mention}")
+            await ctx.send(f"Erreur. Vérifiez que le bot a bien les permissions pour poster dans {canalRoles.mention}.")
 
 
 ##Tâches d'arrière-plan
