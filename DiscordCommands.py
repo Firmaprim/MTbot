@@ -186,18 +186,13 @@ async def on_ready():
     print(bot.user.id)
     print('------')
     global serveur
-    global canalInfoBot
-    global canalEnAttente
-    global canalGeneral
-    global canalResolutions
-    global canalLogsBot
-    global canalRoles
+    global canalInfoBot, canalEnAttente, canalGeneral, canalResolutions, canalLogsBot, canalRoles, canalEntreesSorties
     global PenduRunner
     global users_links, users_links_tmp, msg_ids_links, msg_ids_links_tmp
     global solvedpbs_ping_settings
     global aclient
 
-    print("Chargement...", end="\r")
+    print("Chargement ...", end="\r")
 
     users_links, users_links_tmp, msg_ids_links, msg_ids_links_tmp = {}, {}, {}, {}
 
@@ -211,6 +206,7 @@ async def on_ready():
     canalGeneral = serveur.get_channel(options['IdGeneral'])
     canalResolutions = serveur.get_channel(options['IdResolutions'])
     canalLogsBot = serveur.get_channel(options['IdLogsBot'])
+    canalEntreesSorties = serveur.get_channel(options['IdEntreesSorties'])
 
     async for message in canalInfoBot.history(limit=None):
         user, id_mt = message.content.split(" ")
@@ -237,7 +233,7 @@ async def on_ready():
     
     task.start()
 
-    print("Bot ready !  ")
+    print("Bot prêt !")
     
     await bot.change_presence(activity=Game(name="Mathraining | &help"))
 
@@ -259,11 +255,11 @@ async def on_member_update(before, after):
     if role_verifie not in before.roles and role_verifie in after.roles:
         fmt = 'Bienvenue '+ after.mention + " ! Pense à lier ton compte Mathraining avec la commande `&ask`. \n" + \
         "Si tu as des problèmes avec cette commande tape `&help` pour en savoir plus sur le bot ou va faire un tour dans <#726480900644143204>. :wink:" 
-        await canalGeneral.send(fmt)
+        await canalEntreesSorties.send(fmt)
 
 @bot.event
 async def on_member_remove(member):
-    await canalGeneral.send(f"**{member}** a quitté le serveur.")
+    await canalEntreesSorties.send(f"**{member}** a quitté le serveur.")
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -529,7 +525,7 @@ async def pendu(ctx, tuile: str = ''):
     await AnnexePendu.pendu(ctx, tuile, PenduRunner)
     
 @bot.command()
-@log_errors("CITATION", 2)
+@log_errors("CITATION")
 async def citation(ctx):
     async with aclient.get("http://math.furman.edu/~mwoodard/www/data.html") as response: text = await response.text()
     soup = BeautifulSoup(text, "lxml") #Penser à modifier la source soi-même ?
