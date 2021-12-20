@@ -428,7 +428,8 @@ async def info(ctx, idMT: MTid = None):
 
     Infos=list(filter(None,[i.getText().strip() for i in soup.find_all('td', limit = 39)]))
     if len(Infos) == 3:
-        embed = Embed(title=Infos[0] + " - " + Infos[1], url=url, description="Membre n°"+str(idMT))
+        country = soup.select_one("td img")['src'].split('/')[-1].split('-')[0]
+        embed = Embed(title=f"{Infos[0]} - {Infos[1]} :flag_{country}:", url=url, description="Membre n°"+str(idMT))
         await ctx.send(embed=embed);return
     elif len(Infos) < 3:
         await ctx.send(content="Le compte Mathraining renseigné n'existe pas !");return
