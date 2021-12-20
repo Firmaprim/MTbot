@@ -233,7 +233,7 @@ async def on_ready():
     
     task.start()
 
-    print("Bot prêt !")
+    print("Bot prêt !    ")
     
     await bot.change_presence(activity=Game(name="Mathraining | &help"))
 
