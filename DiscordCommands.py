@@ -254,10 +254,16 @@ async def on_raw_reaction_remove(payload):
             except ValueError: pass
 
 @bot.event
-async def on_member_join(member):
-    fmt = 'Bienvenue '+ member.mention + " ! Pense à lier ton compte Mathraining avec la commande `&ask`. \n" + \
-    "Si tu as des problèmes avec cette commande tape `&help` pour en savoir plus sur le bot ou va faire un tour dans <#726480900644143204>. :wink:" 
-    await canalGeneral.send(fmt)
+async def on_member_update(before, after):
+    role_verifie = get(serveur.roles, name = "Vérifié")
+    if role_verifie not in before.roles and role_verifie in after.roles:
+        fmt = 'Bienvenue '+ after.mention + " ! Pense à lier ton compte Mathraining avec la commande `&ask`. \n" + \
+        "Si tu as des problèmes avec cette commande tape `&help` pour en savoir plus sur le bot ou va faire un tour dans <#726480900644143204>. :wink:" 
+        await canalGeneral.send(fmt)
+
+@bot.event
+async def on_member_remove(member):
+    await canalGeneral.send(f"**{member}** a quitté le serveur.")
 
 @bot.event
 async def on_command_error(ctx, error):
