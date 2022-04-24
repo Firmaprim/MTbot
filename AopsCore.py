@@ -86,7 +86,7 @@ async def update_message(client, interaction = None):
 
     showed_folders = folders[page*NUM_ITEMS_PAGE : (page+1)*NUM_ITEMS_PAGE]
 
-    embed = Embed(title=category['category_name'], color=0x009fad)
+    embed = Embed(title=category['category_name'], color=0x009fad, url=f"https://artofproblemsolving.com/community/c{cat_id}")
     embed.set_footer(text=f"AoPS | Page {page+1}/{num_pages}")
 
     components = []
@@ -185,7 +185,7 @@ async def process_click(interaction, _aclient):
                 await process.communicate()
                 os.remove(f"tmp/aops-{item_id}.html")
 
-            embed = Embed(title=f"{cat['category_name']}{sub_cat_name} ▹ {problem['item_text']}", color=0x009fad)
+            embed = Embed(title=f"{cat['category_name']}{sub_cat_name} ▹ {problem['item_text']}", color=0x009fad, url=f"https://artofproblemsolving.com/community/c6h{problem['post_data']['topic_id']}p{problem['post_data']['post_id']}")
             embed.set_image(url=f"attachment://aops-{item_id}.png")
 
         msg = await interaction.channel.send(embed=embed, file=File(f"tmp/aops-{item_id}.png"), reference=interaction.message, mention_author=False)
