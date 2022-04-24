@@ -106,7 +106,7 @@ async def update_message(client, interaction = None):
                 thelist2.append("")
             else:
                 text = item['post_data']['post_canonical'].replace("\r\n", " ")
-                if len(text) > 100: text = text[:100] + "..." # total size of field value must be < 1024
+                if len(text) > 100: text = text[:94] + "..." # total size of field value must be < 1024
 
                 if thelist2 == []: thelist1.append(""); thelist2.append("")
                 thelist2[-1] += f"**{item['item_text']}** {text}\n"
