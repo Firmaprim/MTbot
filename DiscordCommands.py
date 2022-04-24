@@ -2,6 +2,8 @@ from discord import *
 from discord.ext import commands, tasks
 from discord.utils import get
 
+from discord_components import *
+
 import datetime, pytz
 from email.utils import parsedate_to_datetime
 
@@ -32,12 +34,18 @@ bot = commands.Bot(command_prefix='&', description='Bot Mathraining, merci aux g
 
 with open('options.yml', 'r') as options_file : options = safe_load(options_file)
 
+with open("Problems.txt") as file:
+    PROBLEMS_MT = { int(line.split()[0]): int(line.split()[1]) for line in file }
+
 NomsRoles = ["Grand Maitre", "Maitre", "Expert", "Chevronné", "Expérimenté", "Qualifié", "Compétent", "Initié", "Débutant", "Novice"]
 
-colors = {'Novice' : 0x888888, 'Débutant' : 0x08D508, 'Débutante' : 0x08D508, 'Initié' : 0x008800, 'Initiée' : 0x008800,
-          'Compétent' : 0x00BBEE, 'Compétente' : 0x00BBEE, 'Qualifié' : 0x0033FF, 'Qualifiée' : 0x0033FF, 'Expérimenté' : 0xDD77FF,
-          'Expérimentée' : 0xDD77FF, 'Chevronné' : 0xA000A0, 'Chevronnée' : 0xA000A0, 'Expert' : 0xFFA000, 'Experte' : 0xFFA000,
-          'Maître' : 0xFF4400, 'Grand Maître' : 0xCC0000}
+#colors = {'Novice' : 0x888888, 'Débutant' : 0x08D508, 'Débutante' : 0x08D508, 'Initié' : 0x008800, 'Initiée' : 0x008800,
+#          'Compétent' : 0x00BBEE, 'Compétente' : 0x00BBEE, 'Qualifié' : 0x0033FF, 'Qualifiée' : 0x0033FF, 'Expérimenté' : 0xDD77FF,
+#          'Expérimentée' : 0xDD77FF, 'Chevronné' : 0xA000A0, 'Chevronnée' : 0xA000A0, 'Expert' : 0xFFA000, 'Experte' : 0xFFA000,
+#          'Maître' : 0xFF4400, 'Grand Maître' : 0xCC0000}
+
+
+no_mention = AllowedMentions(users=False, roles=False, everyone=False)
 
 msghelp = "\nTaper la commande `&help` pour plus d'informations."
 
@@ -46,35 +54,33 @@ perms="Vous n'avez pas les permissions pour effectuer cette commande."
 
 ##_________________Fonctions_Annexes____________________
 
-async def GetMTScore(idMT: int) :
+async def GetMTScore(idMT: int, ret_soup = False) :
     async with aclient.get(f"https://www.mathraining.be/users/{idMT}") as response: text = await response.text()
     soup = BeautifulSoup(text,"lxml")
-    try : 
-        htmlscore = soup.find_all('td', limit = 5)
-        if htmlscore != [] : return int(htmlscore[4].getText().strip())
-        else : return 2 #Identifiant non attribué
-    except : 
-        if htmlscore[1].getText().strip() == "Administrateur" : return 1 #Administrateur
-        else : return 0 #Personne n'ayant aucun point
+
+    score = 0
+    tds = soup.find_all('td', limit = 5)
+    if len(tds) == 0: score = 2 # Identifiant non attribué
+    elif len(tds) > 4: score = int(tds[4].getText().strip())
+    elif tds[1].getText().strip() in ("Administrateur", "Administratrice"): score = 1 # Administrateur
+    else: score = -1
+    return (score, soup) if ret_soup else score
 
 def roleScore(s):
     """Renvoie le role correspondant au score"""
-    try:
-        if s >= 7500: role = "Grand Maitre"
-        elif s >= 5000: role = "Maitre"
-        elif s >= 3200: role = "Expert"
-        elif s >= 2000: role = "Chevronné"
-        elif s >= 1250: role = "Expérimenté"
-        elif s >= 750: role = "Qualifié"
-        elif s >= 400: role = "Compétent"
-        elif s >= 200: role = "Initié"
-        elif s >= 70:  role = "Débutant"
-        elif s == 2 : role = "Inconnu"
-        elif s == 1 : role = "Administrateur"
-        else: role = "Novice"
-        return role
-    except: return -1
-    
+    if s >= 7500:   return "Grand Maitre"
+    elif s >= 5000: return "Maitre"
+    elif s >= 3200: return "Expert"
+    elif s >= 2000: return "Chevronné"
+    elif s >= 1250: return "Expérimenté"
+    elif s >= 750:  return "Qualifié"
+    elif s >= 400:  return "Compétent"
+    elif s >= 200:  return "Initié"
+    elif s >= 70:   return "Débutant"
+    elif s == 2 :   return "Inconnu"
+    elif s == 1 :   return "Administrateur"
+    else:           return "Novice"
+
 async def GetDiscordUser(ctx,user) :
     user1 = None
     if user.isdigit(): user1 = bot.get_user(id=int(user))
@@ -94,16 +100,16 @@ def FindUser(user: Member, en_attente=False) :
     return users_links.get(int(user.id), 0) if not en_attente else users_links_tmp.get(int(user.id), 0)
 
 async def FindMTUser(user_str : str, ctx, print_msgs = True):
-    if user_str.isdigit() and len(user_str) <= 4:
+    if user_str.isdigit() and len(user_str) <= 5:
         return int(user_str)
     else:
         user = await GetDiscordUser(ctx, user_str)
         if not user and print_msgs:
-            await ctx.channel.send(f"**{user_str}**: Utilisateur introuvable."+msghelp, allowed_mentions=AllowedMentions(users=False))
+            await ctx.channel.send(f"**{user_str}**: Utilisateur introuvable."+msghelp, allowed_mentions=no_mention)
             return 0
         id = FindUser(user)
         if not id and print_msgs:
-            await ctx.channel.send(f"L'utilisateur {user.mention} n'est pas rattaché à un compte Mathraining."+msghelp, allowed_mentions=AllowedMentions(users=False))
+            await ctx.channel.send(f"L'utilisateur {user.mention} n'est pas rattaché à un compte Mathraining."+msghelp, allowed_mentions=no_mention)
             return 0
         return id
 
@@ -155,11 +161,9 @@ async def erreur(e,ctx=None,switch=1) :
     err="```diff\n"+err+"```"
     await canalLogsBot.send(err)
     if ctx:
-        await ctx.send("**[Erreur "+e+']** '+"`"+errmsg+"`"+" **[Erreur "+e+']**')
-        e=Embed()
-        if switch == 2 : e.set_image(url=options['AdrienFail'])
-        else : e.set_image(url=options['FirmaFail'])
-        await ctx.send(embed=e)
+        emb=Embed()
+        emb.set_image(url=options['AdrienFail'] if switch == 2 else options['FirmaFail'])
+        await ctx.send("**[Erreur "+e+']** '+"`"+errmsg+"`"+" **[Erreur "+e+']**', embed=emb)
 
 import functools
 def log_errors(name, switch=1): # use after @bot.command()
@@ -175,6 +179,26 @@ def log_errors(name, switch=1): # use after @bot.command()
                         await erreur(name, switch=switch)
         return f
     return wrapper
+
+def admin_or_modo(arg):
+    if hasattr(arg, '__call__'):
+        @functools.wraps(arg)
+        async def f(ctx, *args, **kwargs):
+            if admin_or_modo(ctx): return await arg(ctx, *args, **kwargs)
+            else: await ctx.send(perms)
+        return f
+    else:
+        member = serveur.get_member(arg.author.id if type(arg) == commands.Context else arg.id)
+        for i in member.roles:
+            if i.name in ("Admin", "Modo"):
+                return True
+        return False
+
+def serv_only(func):
+    @functools.wraps(func)
+    async def f(ctx, *args, **kwargs):
+        if ctx.guild == serveur: return await func(ctx, *args, **kwargs)
+    return f
 
 ##_________________________EVENT_______________________________________
 
@@ -193,6 +217,7 @@ async def on_ready():
     global aclient
 
     print("Chargement ...", end="\r")
+    DiscordComponents(bot)
 
     users_links, users_links_tmp, msg_ids_links, msg_ids_links_tmp = {}, {}, {}, {}
 
@@ -227,7 +252,7 @@ async def on_ready():
                 thereaction = r
                 break
         solvedpbs_ping_settings = [i.id async for i in thereaction.users()]
-    except errors.NotFound:
+    except NotFound:
         solvedpbs_ping_settings = []
         await canalLogsBot.send(f":warning: Impossible de charger les paramètres de ping des {canalResolutions.mention}. Utilisez `&resolutions_setup` pour corriger le problème.")
     
@@ -250,6 +275,7 @@ async def on_raw_reaction_remove(payload):
             except ValueError: pass
 
 @bot.event
+@serv_only
 async def on_member_update(before, after):
     role_verifie = get(serveur.roles, name = "Vérifié")
     if role_verifie not in before.roles and role_verifie in after.roles:
@@ -258,14 +284,15 @@ async def on_member_update(before, after):
         await canalEntreesSorties.send(fmt)
 
 @bot.event
+@serv_only
 async def on_member_remove(member):
     await canalEntreesSorties.send(f"**{member}** a quitté le serveur.")
 
 @bot.event
 async def on_command_error(ctx, error):
-    if type(error) == commands.errors.MemberNotFound:
-        await ctx.channel.send(f"**{error.argument}**: Utilisateur introuvable."+msghelp, allowed_mentions=AllowedMentions(users=False))
-    elif type(error) != Exception and type(error) != commands.errors.ConversionError:
+    if type(error) == commands.MemberNotFound:
+        await ctx.channel.send(f"**{error.argument}**: Utilisateur introuvable."+msghelp, allowed_mentions=no_mention)
+    elif type(error) != Exception and type(error) != commands.ConversionError and type(error) != commands.CommandNotFound:
         raise error
 
 @bot.event
@@ -295,17 +322,11 @@ async def on_message(message):
     if '#' in message.content and message.author != bot.user:
         msg = message.content.split()
         for i in msg:
-            urlPb = ""
             if i[0]== '#' and i[5:6]=='' and i[4:5]!='' and i[1:5].isdigit() : #On vérifie que le nombre a exactement 4 chiffres
                 numeroPb = int(i[1:5])
-                with open("Problems.txt", "r") as file:     #On pourrait faire du log(n) si le fichier était trié selon les numéros de pb.
-                    for line in file:                       #Mais bon, on a que 153 problèmes, donc c'est pas bien grave !
-                        numero, url = map(int, line.split())
-                        if numero == numeroPb:
-                            urlPb = url; break
-            if urlPb:
-                aEnvoyer = "Problème " + str(numeroPb) + " : https://www.mathraining.be/problems/" + str(urlPb)
-                await message.channel.send(aEnvoyer )
+                if numeroPb in PROBLEMS_MT:
+                    aEnvoyer = f"Problème #{numeroPb} : https://www.mathraining.be/problems/{PROBLEMS_MT[numeroPb]}"
+                    await message.channel.send(aEnvoyer)
     await bot.process_commands(message)
 
 ##_____________________COMMANDES___________________________________
@@ -346,17 +367,23 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
     user=ctx.message.author
     idMT = FindUser(user, True)
     msay = await ctx.send("`Chargement en cours ...`")
-    
-    if user2 != None and ("Admin" or "Modo") in [y.name for y in user.roles] :  ##Si admin ou modo ...
+
+    if user2 != None and admin_or_modo(ctx):
         #await bot.add_roles(user, get(user2.server.roles, name = "Vérifié") )
         if FindUser(user2) == 0 :
             await canalInfoBot.send(str(user2.mention)+ " " + str(idMT2))
     
-            role = roleScore(await GetMTScore(idMT2))
+            score, soup = await GetMTScore(idMT2, True)
+            role = roleScore(score)
             servRole = get(serveur.roles, name = role)
             await user2.add_roles(servRole)
-            
-            await canalGeneral.send(f"Un Administrateur/Modérateur a relié {user2} au compte Mathraining d'id {idMT2} ! Il obtient le rôle {servRole.mention}. :clap:", allowed_mentions=AllowedMentions(roles=False))
+
+            pronoun = ""
+            if score not in (1, 2):
+                div = soup.select("div.basic_container")[5].find_all("div")[1]
+                pronoun = "Il" if div.contents[0].endswith("inscrit sur Mathraining le ") else "Elle"
+
+            await canalGeneral.send(f"Un Administrateur/Modérateur a relié {user2} au compte Mathraining d'id {idMT2} ! {pronoun} obtient le rôle {servRole.mention}. :clap:", allowed_mentions=no_mention)
             await msay.delete()
         else : await msay.edit(content=str(user2)+ " est déjà lié avec l'id "+str(FindUser(user2))+".")
         
@@ -385,7 +412,7 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
             servRole = get(serveur.roles, name = role)
             await user.add_roles(servRole)
             
-            await msay.edit(content=f"La demande de lien a été acceptée par le compte Mathraining ! Vous obtenez le rôle {servRole.mention}! :clap:", allowed_mentions=AllowedMentions(roles=False))
+            await msay.edit(content=f"La demande de lien a été acceptée par le compte Mathraining ! Vous obtenez le rôle {servRole.mention if ctx.guild == serveur else f'`{servRole}`'}! :clap:", allowed_mentions=no_mention)
         else :
             msg="Les comptes Discord et Mathraining en question ne seront pas reliés."
             await mt_send_mp(idMT, msg)
@@ -399,7 +426,7 @@ async def verify(ctx,user2: Member = None,idMT2: int = 0):
 @log_errors("UPDATE")
 async def update(ctx, user: Member = None):
     '''Pour mettre à jour son/ses roles'''
-    if not user: user = ctx.author
+    if not user: user = serveur.get_member(ctx.author.id)
     idMT = await FindMTUser(str(user.id), ctx)
 
     if idMT != 0:
@@ -412,9 +439,9 @@ async def update(ctx, user: Member = None):
         
         if role not in [r.name for r in roles] :
             role_to_add = get(serveur.roles, name = role)
-            roles=user.roles; await user.add_roles(role_to_add)
-            if user == ctx.message.author : await ctx.send(f"Bravo, vous obtenez le rôle {role_to_add.mention}! :clap:", allowed_mentions=AllowedMentions(roles=False))
-            else : await ctx.send(str(user)+f" obtient désormais le rôle {role_to_add.mention}! :clap:", allowed_mentions=AllowedMentions(roles=False))
+            await user.add_roles(role_to_add)
+            if user == ctx.message.author : await ctx.send(f"Bravo, vous obtenez le rôle {role_to_add.mention if ctx.guild == serveur else f'`{role_to_add}`'}! :clap:", allowed_mentions=no_mention)
+            else : await ctx.send(str(user)+f" obtient désormais le rôle {role_to_add.mention if ctx.guild == serveur else f'`{role_to_add}'}! :clap:", allowed_mentions=no_mention)
         else : await ctx.send("Déjà à jour !")
 
 @bot.command(pass_context=True)
@@ -437,8 +464,10 @@ async def info(ctx, idMT: MTid = None):
         await ctx.send(content="Le compte Mathraining renseigné n'existe pas !");return
 
     country = soup.select_one("td img")['src'].split('/')[-1].split('-')[0]
+    if country == "tp": country = "tl"
+    elif country == "uk": country = "gb"
 
-    embed = Embed(title=f"{Infos[0]} - {Infos[1]} :flag_{country}:", url=url, description="Membre n°"+str(idMT)+3*' '+"Rang : "+Infos[6]+"  Top  "+Infos[8]+(7-len(Infos[6]+Infos[8]))*' ' +" <:gold:836978754454028338> : "+Infos[9]+" <:silver:836978754433319002> : "+Infos[10]+" <:bronze:836978754467135519> : "+Infos[11]+" <:mh:836978314387259442> : "+Infos[12], color=colors[Infos[1]])
+    embed = Embed(title=f"{Infos[0]} - {Infos[1]} :flag_{country}:", url=url, description="Membre n°"+str(idMT)+3*' '+"Rang : "+Infos[6]+"  Top  "+Infos[8]+(7-len(Infos[6]+Infos[8]))*' ' +" <:gold:836978754454028338> : "+Infos[9]+" <:silver:836978754433319002> : "+Infos[10]+" <:bronze:836978754467135519> : "+Infos[11]+" <:mh:836978314387259442> : "+Infos[12], color=int(soup.find('td').find('span')['style'].split('#')[1].split(';')[0], 16))
     embed.add_field(name="Score : ", value=Infos[4], inline=True)
     embed.add_field(name="Exercices résolus : ", value=''.join(Infos[14].split()), inline=True)
     embed.add_field(name="Problèmes résolus : ", value=''.join(Infos[16].split()), inline=True)
@@ -446,14 +475,37 @@ async def info(ctx, idMT: MTid = None):
 
     await ctx.send(embed=embed)
 
+@bot.event
+@log_errors("BUTTON")
+async def on_button_click(interaction):
+    #print(f"{interaction.author} a cliqué sur {interaction.custom_id}")
+    if interaction.custom_id.startswith("aops-"):
+        await AopsCore.process_click(interaction, aclient)
+
+@bot.command(pass_context=True)
+@log_errors("PROGRESS")
+async def progress(ctx, idMT: MTid = None):
+    if not idMT: idMT = await MTid.me(ctx)
+    async with ctx.channel.typing():
+        img, name, pts, color = await AnnexeCompare.progress_graph(ctx, idMT, aclient)
+        if img:
+            file = File(img)
+            embed = Embed(title=f'Évolution de **{name} ({pts})**', color=color)
+            embed.set_image(url=f"attachment://progress.png")
+            await ctx.send(file=file, embed=embed)
+
 @bot.command()
 @log_errors("COMPARE")
 async def compare(ctx, id1: MTid, id2: MTid = None):
-    if not id2:
-        id1, id2 = await MTid.me(ctx), id1
-
-    if id1 == id2 and id1: await ctx.channel.send(f"Pourquoi se comparer avec soi même ?")
-    elif id1 and id2 : await AnnexeCompare.make_graph(ctx, id1, id2, aclient)
+    if not id2: id1, id2 = await MTid.me(ctx), id1
+    if id1 == id2: await ctx.channel.send(f"Pourquoi se comparer avec soi même ?\nSi vous souhaitez afficher l'évolution d'un utilisateur, vous pouvez utiliser la commande `&progress`. :wink:")
+    else:
+        async with ctx.channel.typing():
+            img, name, pts, name2, pts2 = await AnnexeCompare.compare_graph(ctx, id1, id2, aclient)
+            if img:
+                embed = Embed(title=f'**{name} ({pts})** vs **{name2} ({pts2})**', color=0x87CEEB)
+                embed.set_image(url="attachment://compare.png")
+                await ctx.send(file=File(img), embed=embed)
 
 @bot.command()
 @log_errors("CORRECTIONS")
@@ -487,10 +539,9 @@ async def hi(ctx):
     await ctx.send("Salut ! Comment vas-tu ?")
     
 @bot.command(pass_context = True)
+@admin_or_modo
 async def say(ctx, *, arg):
-    if ("Admin" or "Modo") in [y.name for y in serveur.get_member(ctx.message.author.id).roles] :
-        await canalGeneral.send(arg)
-    else : await ctx.send(perms)
+    await canalGeneral.send(arg)
     
 @bot.command()
 @log_errors("COMPTE")
@@ -540,12 +591,14 @@ async def citation(ctx):
     await ctx.send(embed=embed)
 
 @bot.command(pass_context = True)
+@log_errors("AOPS")
 async def aops(ctx):
-    try: await AopsCore.aopscore(bot,ctx)
-    except Exception as exc : 
-        await erreur('AOPS',ctx)
-        try : driver.quit()
-        except : return
+    await AopsCore.aopscore(bot, ctx, aclient)
+
+@bot.command()
+async def _aops_cache(ctx): await ctx.send(f"Le cache contient actuellement {len(AopsCore.cache)} catégories, et au total {sum(len(i['items']) for i in AopsCore.cache.values())} items.")
+@bot.command()
+async def _aops_cache_clear(ctx): AopsCore.cache.clear()
 
 @bot.command(pass_context = True)
 async def oops(ctx):
@@ -554,7 +607,7 @@ async def oops(ctx):
 @bot.command(pass_context = True)
 async def trivial(ctx):
     await ctx.message.add_reaction('😒')
-    
+
 @bot.command(pass_context = True)
 async def makeloose(ctx,user:Member = None):
     try :
@@ -566,7 +619,7 @@ async def makeloose(ctx,user:Member = None):
     except :
         try : await (ctx.message).delete();await ctx.send('<:blurryeyes:622399161240649751>')
         except : await ctx.send('<:blurryeyes:622399161240649751>')
-    
+
 bot.remove_command('help')
 @bot.command(pass_context = True)
 @log_errors("HELP")
@@ -578,6 +631,7 @@ async def help(ctx):
     embed.add_field(name="update", value="Pour mettre à jour son rang.", inline=False)
     embed.add_field(name="info (utilisateur/idMathraining)", value="Donne le score et le rang Mathraining de l'utilisateur Discord ou Mathraining."
     +"\n Les mentions, les surnoms tout comme les id Mathraining fonctionnent.\n Par défaut prend la personne qui a envoyé la commande comme utilisateur.", inline=False)
+    embed.add_field(name="progress (utilisateur)", value="Affiche la courbe d'évolution d'un utilisateur Mathraining. Par défaut prend la personne qui a envoyé la commande.", inline=False)
     embed.add_field(name="compare utilisateur1 (utilisateur2)", value="Pour se comparer avec un utilisateur, ou comparer deux utilisateurs.", inline=False)
     embed.add_field(name="corrections (all)", value="Affiche la liste des correcteurs (qui ont corrigé récemment ou pas avec \"all\") et leurs contributions.", inline=False)
     embed.add_field(name="solved utilisateur numPb", value="Indique si le problème numéro numPb a été résolu par l'utilisateur.", inline=False)
@@ -590,23 +644,23 @@ async def help(ctx):
     embed.add_field(name="help", value="Affiche ce message en MP.", inline=False)
 
     try:
-        await (ctx.message.author).send(embed=embed)
-    except errors.Forbidden:
+        await ctx.author.send(embed=embed)
+    except Forbidden:
         await ctx.send("Impossible de vous envoyer l'aide. Peut-être avez-vous bloqué les messages privés, ce qui empêche le bot de communiquer avec vous.")
 
 @bot.command()
+@admin_or_modo
 async def resolutions_setup(ctx):
-    if ctx.guild == serveur and "Admin" in (y.name for y in ctx.author.roles):
-        ping_emoji = get(serveur.emojis, name="ping")
-        if not ping_emoji:
-            await ctx.send(f"Emoji ping introuvable. Avez-vous bien un emoji nommé \"ping\" ?")
-            return
-        try:
-            msg = await canalRoles.send(f"Souhaitez-vous être ping pour les {canalResolutions.mention} ?")
-            await msg.add_reaction(ping_emoji)
-            await ctx.send(f"Mettez```IdMessageRoles: {msg.id}``` dans `options.yml` puis redémarrez le bot.")
-        except errors.Forbidden:
-            await ctx.send(f"Erreur. Vérifiez que le bot a bien les permissions pour poster dans {canalRoles.mention}.")
+    ping_emoji = get(serveur.emojis, name="ping")
+    if not ping_emoji:
+        await ctx.send(f"Emoji ping introuvable. Avez-vous bien un emoji nommé \"ping\" ?")
+        return
+    try:
+        msg = await canalRoles.send(f"Souhaitez-vous être ping pour les {canalResolutions.mention} ?")
+        await msg.add_reaction(ping_emoji)
+        await ctx.send(f"Mettez```IdMessageRoles: {msg.id}``` dans `options.yml` puis redémarrez le bot.")
+    except Forbidden:
+        await ctx.send(f"Erreur. Vérifiez que le bot a bien les permissions pour poster dans {canalRoles.mention}.")
 
 ##Tâches d'arrière-plan
 
@@ -614,7 +668,7 @@ last_submission_date = None
 statistiques = [0, 0, 0, 0]
 nbRequetes = 0
 
-@tasks.loop(seconds = 300)
+@tasks.loop(minutes = 5)
 @log_errors("TASK")
 async def task():
     global last_submission_date, nbRequetes, statistiques
@@ -669,25 +723,23 @@ async def task():
 
         discordUser = FindMT(user)
         if not discordUser: continue # on affiche que les utilisateurs du discord MT
-
-        # on récupère le lien du problème
-        with open("Problems.txt", "r") as file:
-            for line in file:
-                numero, idPb = line.split()
-                if numero == probleme: break
         
         ping_user = discordUser in solvedpbs_ping_settings
         
-        the_user = bot.get_user(int(discordUser)) or await bot.fetch_user(int(discordUser))
-        
+        try: the_user = bot.get_user(int(discordUser)) or await bot.fetch_user(int(discordUser))
+        except NotFound: continue
+
         prefix = the_user.mention if ping_user else f"**{the_user.name}**`#{the_user.discriminator}`"
-        
-        liste.append(f"{prefix} a résolu le problème #{probleme} https://www.mathraining.be/problems/{idPb} ! :clap:")
+
+        liste.append(f"{prefix} a résolu le problème #{probleme} https://www.mathraining.be/problems/{PROBLEMS_MT[int(probleme)]} ! :clap:")
+
     for i in reversed(liste):
         await canalResolutions.send(i)
+
+    await AopsCore.task(aclient)
 
 ##...
 
 try: bot.run(options['token']) #Token MT
-except errors.LoginFailure as e: print(e)
+except LoginFailure as e: print(e)
 else: run(aclient.close())
