@@ -104,7 +104,7 @@ async def update_message(client, interaction = None):
             if item['post_data']['post_type'] == 'view_posts_text':
                 thelist1.append(f"{item['item_text']}")
                 thelist2.append("")
-            else:
+            elif item['item_text']:
                 text = item['post_data']['post_canonical'].replace("\r\n", " ")
                 if len(text) > 100: text = text[:94] + "..." # total size of field value must be < 1024
 
