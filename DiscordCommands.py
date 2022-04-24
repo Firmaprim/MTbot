@@ -83,10 +83,10 @@ def roleScore(s):
 
 async def GetDiscordUser(ctx,user) :
     user1 = None
-    if user.isdigit(): user1 = bot.get_user(id=int(user))
+    if user.isdigit(): user1 = bot.get_user(int(user))
     if not user1:
         r = compile(r"<@(!|)([0-9]+)>").search(user)
-        if r: user1 = bot.get_user(id=int(r.group(2)))
+        if r: user1 = bot.get_user(int(r.group(2)))
     if not user1:
         r = compile(r"^([^#]+)#([0-9]{4})$").search(user)
         if r: user1 = get(serveur.members, name=r.group(1), discriminator=r.group(2))
