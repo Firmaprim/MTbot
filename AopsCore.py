@@ -38,9 +38,9 @@ async def fetch_category(item_id, session, interaction=None):
             #print(f"AoPS: Fetching more items from category {item_id}")
             response = await aclient.post("https://artofproblemsolving.com/m/community/ajax.php", data={
                 'category_id': f"{item_id}",
-                'last_item_score': obj['last_item_score'],
-                'last_item_level': obj['last_item_level'],
-                'last_item_text': obj['last_item_text'],
+                'last_item_score': obj.get('last_item_score'),
+                'last_item_level': obj.get('last_item_level'),
+                'last_item_text': obj.get('last_item_text'),
                 'start_num': len(obj['items']),
                 'fetch_all': "0",
                 'a': "fetch_more_items",
@@ -106,7 +106,7 @@ async def update_message(client, interaction = None):
                 thelist2.append("")
             elif item['item_text']:
                 text = item['post_data']['post_canonical'].replace("\r\n", " ")
-                if len(text) > 100: text = text[:94] + "..." # total size of field value must be < 1024
+                if len(text) > 89: text = text[:89] + "…" # total size of field value must be < 1024
 
                 if thelist2 == []: thelist1.append(""); thelist2.append("")
                 thelist2[-1] += f"**{item['item_text']}** {text}\n"
@@ -217,7 +217,7 @@ async def process_click(interaction, _aclient):
 
 async def task(_aclient): # destroy expired clients
     global aclient; aclient = _aclient
-    limit = datetime.datetime.now() - datetime.timedelta(minutes=15)
+    limit = datetime.datetime.now() - datetime.timedelta(minutes=5)
     for msg_id, client in list(clients.items()):
         if client['last_activity'] < limit:
             try:
