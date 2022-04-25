@@ -217,7 +217,7 @@ async def process_click(interaction, _aclient):
 
 async def task(_aclient): # destroy expired clients
     global aclient; aclient = _aclient
-    limit = datetime.datetime.now() - datetime.timedelta(minutes=5)
+    limit = datetime.datetime.now() - datetime.timedelta(minutes=15)
     for msg_id, client in list(clients.items()):
         if client['last_activity'] < limit:
             try:
