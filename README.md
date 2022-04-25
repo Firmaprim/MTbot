@@ -8,13 +8,12 @@ Dépendances sur pip :
  - aiohttp
  - bs4 (beautiful soup 4)
  - lxml
- - selenium
  - PyYAML
  - Matplotlib
  - pytz
 
 Autres dépendances :
- - Geckodriver : https://github.com/mozilla/geckodriver/releases (à mettre à la racine)
- - wkhtmltopdf : https://wkhtmltopdf.org/downloads.html
+ - wkhtmltopdf : https://wkhtmltopdf.org/downloads.html 
+ (Il faut pouvoir lancer la commande "wkhtmltoimage" directement : à installer directement avec apt par ex.)
 
 (à compléter)
