@@ -156,13 +156,16 @@ async def mt_send_mp(idMT, msg):
         raise RuntimeError("Impossible d'envoyer un message privé sur mathraining. Vérifiez que le login/mot de passe sont corrects.")
 
 async def erreur(e,ctx=None,switch=1) :
-    err="- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -"+'\n'+format_exc()+"- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -";print(err)
-    err="```diff\n"+err+"```"
-    await canalLogsBot.send(err)
-    if ctx:
-        emb=Embed()
-        emb.set_image(url=options['AdrienFail'] if switch == 2 else options['FirmaFail'])
-        await ctx.send("**[Erreur "+e+']** '+"`"+errmsg+"`"+" **[Erreur "+e+']**', embed=emb)
+    try:
+        err="- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -"+'\n'+format_exc()+"- "+"[Erreur "+e+'] '+'-'*50+" [Erreur "+e+']'+" -";print(err)
+        err="```diff\n"+err+"```"
+        await canalLogsBot.send(err)
+        if ctx:
+            emb=Embed()
+            emb.set_image(url=options['AdrienFail'] if switch == 2 else options['FirmaFail'])
+            await ctx.send("**[Erreur "+e+']** '+"`"+errmsg+"`"+" **[Erreur "+e+']**', embed=emb)
+    except Exception as e:
+        print(format_exc())
 
 import functools
 def log_errors(name, switch=1): # use after @bot.command()
@@ -255,7 +258,7 @@ async def on_ready():
         solvedpbs_ping_settings = []
         await canalLogsBot.send(f":warning: Impossible de charger les paramètres de ping des {canalResolutions.mention}. Utilisez `&resolutions_setup` pour corriger le problème.")
     
-    task.start()
+    if not task.is_running(): task.start()
 
     print("Bot prêt !    ")
     
@@ -673,7 +676,7 @@ async def task():
     global last_submission_date, nbRequetes, statistiques
 
     # Chiffres remarquables
-    response = await aclient.get("https://www.mathraining.be/")
+    response = await aclient.get("https://www.mathraining.be/", timeout=5)
     soup = BeautifulSoup(await response.text(), "lxml")
 
     taillePaquet = [100, 1000, 10000, 50000] # paliers utilisateurs; problèmes; exercices; points
@@ -695,7 +698,7 @@ async def task():
                 await canalGeneral.send(embed=Embed(description=message, color=0xF9E430))
     
     # Résolutions récentes
-    response = await aclient.get("https://www.mathraining.be/solvedproblems")
+    response = await aclient.get("https://www.mathraining.be/solvedproblems", timeout=5)
     soup = BeautifulSoup(await response.text(), "lxml")
 
     if 'Date' in response.headers:
