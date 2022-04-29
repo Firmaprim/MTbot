@@ -15,5 +15,3 @@ Dépendances sur pip :
 Autres dépendances :
  - wkhtmltopdf : https://wkhtmltopdf.org/downloads.html 
  (Il faut pouvoir lancer la commande "wkhtmltoimage" directement : à installer directement avec apt par ex.)
-
-(à compléter)
