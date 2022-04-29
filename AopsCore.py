@@ -1,141 +1,226 @@
 from discord import *
 from discord.ext import commands
 from discord.utils import get
+from discord_components import *
 
 from asyncio import *
+from asyncio import subprocess
 
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
-
-from re import findall
-from io import BytesIO
-
+from re import findall, compile
+import json, datetime, math, os
+from bs4 import BeautifulSoup
 from traceback import format_exc
 
-options = webdriver.FirefoxOptions()
-options.add_argument('-headless')
+NUM_ITEMS_PAGE = 10
 
-async def aopscore(bot,ctx) :
-        driver = webdriver.Firefox(options=options)
-        #driver = webdriver.PhantomJS(executable_path=r'B:\downloads\MT\PJS\bin\phantomjs.exe')
-        #driver.set_window_position(-2000,0)
-        #driver.set_window_size(2560, 1600)
-        #driver.execute_script("document.body.style.zoom='250%'")
-        #driver.execute_script("document.body.style.webkitTransform = 'scale(1.5)'")
-        #driver.implicitly_wait(10)
-        urlinit="https://artofproblemsolving.com/community/c13_contest_collections";url=urlinit
-        msg = await ctx.send("`Chargement en cours ...`")
-        driver.get(url);await sleep(2)
-        titres = [(i.text).split('\n')+['\u200b']*(2-len((i.text).split('\n'))) for i in driver.find_elements_by_class_name('cmty-category-cell-left') if i.text != '']
-        titre=titres[0][0];titres=titres[1:];l=len(titres);k=0
-        reactions=["🔙","◀","▶","1⃣","2⃣","3⃣","4⃣","5⃣","6⃣","7⃣","8⃣","9⃣","🔟","❌"]
-        def check(reaction,user): return str(reaction.emoji) in reactions and user==ctx.message.author
-        while l :
-            embed = Embed(title=titre, colour=0x009fad)
-            liens =[i.find_element_by_css_selector('a').get_attribute('href') for i in driver.find_elements_by_class_name('cmty-category-cell-heading.cmty-cat-cell-top-legit')]
-            embed.set_footer(text="AoPS | Page "+str(k+1)+"/"+str((l-1)//10 +1)+" | Attendez que les réactions soient toutes présentes.")
-            for i in range(k*10,k*10+min(10,len(titres)-k*10)) : embed.add_field(name=str(i+1)+'. '+titres[i][0],value=titres[i][1],inline=False)
-            await msg.edit(embed=embed)
-            await msg.edit(content="`Veuillez faire une sélection :`")
-            for r in reactions[:min(10,l-k*10)+3]+["❌"]*(10!=(l-k*10)) : await msg.add_reaction(r)
-            try :
-                reac,user = await bot.wait_for('reaction_add',timeout=60,check=check)
-                await msg.edit(content="`Chargement en cours ...`")
-                await msg.clear_reactions()
-                reac=str(reac)
-                for i in range(min(10,len(titres)-k*10)+3) :
-                    if reac == "❌" :
-                        await msg.edit(content="`La requête a été annulée.`")
-                        await msg.clear_reactions()
-                        await msg.edit(embed=Embed(title='AoPS | Terminé', colour=0x009fad))
-                        driver.quit();return
-                    if reac == reactions[1] and k!=0 : k-=1;break
-                    if reac == reactions[2] and k<((l-1)//10) : k+=1;break
-                    if reac == reactions[i] and reac not in reactions[1:3] :
-                        if reac == reactions[0] :
-                            if not url==urlinit : driver.back();url=driver.current_url
-                            else : break
-                        else : url = liens[k*10+i-3];driver.get(url)
-                        await sleep(2)
-                        last_height = driver.execute_script("return document.body.scrollHeight")
-                        while True: #CHARGER LA PAGE ENTIEREMENT EN SCROLLANT !!
-                            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                            await sleep(0.3);new_height = driver.execute_script("return document.body.scrollHeight")
-                            if new_height == last_height: break
-                            last_height = new_height
-                        titres = [(i.text).split('\n')+['\u200b']*(2-len((i.text).split('\n'))) for i in driver.find_elements_by_class_name('cmty-category-cell-left') if i.text != '']
-                        titre=titres[0][0];titres=titres[1:len(titres)-1*(url==urlinit)];l=len(titres);k=0 #Si url = urlinit on enlève le dernier pathologique
-                        break
-            except TimeoutError :
-                await msg.edit(content="`Aucune réponse depuis une minute. La requête a été abandonnée.`")
-                await msg.clear_reactions()
-                await msg.edit(embed=Embed(title='AoPS | Terminé', colour=0x009fad))
-                driver.quit();return
-        driver.execute_script("window.scrollTo(0, 0);")
-        #re.findall("\d+", 'Problem 10')
-        #https://artofproblemsolving.com/community/c389682_2016_china_second_round_olympiad ??????
-        #https://artofproblemsolving.com/community/c502938_2017_middle_european_mathematical_olympiad :(
-        #https://artofproblemsolving.com/community/c930482_2005_dutch_mathematical_olympiad
-        #https://artofproblemsolving.com/community/c681585_2018_imo
-        DescsParties = [(lambda x : '\u200b' if x==[] else x[0].text)(i.find_elements_by_class_name('cmty-view-post-item-text')) for i in driver.find_elements_by_class_name('cmty-view-posts-item') if i.find_elements_by_class_name('cmty-view-post-poster') == []]
+clients, cache = {}, {}
 
-        NumsParties = [(lambda x : '\u200b' if x==[] else x[0].text)(i.find_elements_by_class_name('cmty-view-post-item-label')) for i in driver.find_elements_by_class_name('cmty-view-posts-item') if i.find_elements_by_class_name('cmty-view-post-poster') == []]
-        #Nums = [(lambda x : '\u200b' if x==[] else x[0].text)(i.find_elements_by_class_name('cmty-view-post-item-label')) for i in driver.find_elements_by_class_name('cmty-view-posts-item') if i.find_elements_by_class_name('cmty-view-post-poster') != []]
+async def fetch_session():
+    page = await (await aclient.get("https://artofproblemsolving.com/community/c13")).text()
+    script = BeautifulSoup(page, 'lxml').find_all("script")[2].decode_contents()
+    session = json.loads(compile(r"AoPS\.session *= *(\{.*?\});").findall(script)[0])
+    return session
 
-        LesNums = [[(lambda x : '\u200b' if x==[] else findall("\d+",x[0].text)[0])(i.find_elements_by_class_name('cmty-view-post-item-label')),i.find_elements_by_class_name('cmty-view-post-poster') == []] for i in driver.find_elements_by_class_name('cmty-view-posts-item')]  #True ssi Partie
-        LesNums = list(filter(lambda x: x != ['\u200b', False], LesNums))
+async def fetch_category(item_id, session, interaction=None):
+    if item_id not in cache:
+        #print(f"AoPS: Fetching category {item_id}")
+        response = await aclient.post("https://artofproblemsolving.com/m/community/ajax.php", data={
+            'category_id': f"{item_id}",
+            'a': "fetch_category_data",
+            'aops_logged_in': session['logged_in'],
+            'aops_user_id': session['user_id'],
+            'aops_session_id': session['id'],
+        })
+        obj = json.loads(await response.text())['response']['category']
 
-        Probs = [i.find_elements_by_class_name('cmty-view-post-item-text')[0] for i in driver.find_elements_by_class_name('cmty-view-posts-item') if i.text != '' and i.find_elements_by_class_name('cmty-view-post-item-label') != [] and i.find_elements_by_class_name('cmty-view-post-poster') != []]
-        #OtherProbs = [i.find_elements_by_class_name('cmty-view-post-item-text')[0] for i in driver.find_elements_by_class_name('cmty-view-posts-item') if i.text != '' and i.find_elements_by_class_name('cmty-view-post-item-label') == [] and i.find_elements_by_class_name('cmty-view-post-poster') != []]
+        while not obj['no_more_items']:
+            if interaction: await interaction.respond(type=6)
+            #print(f"AoPS: Fetching more items from category {item_id}")
+            response = await aclient.post("https://artofproblemsolving.com/m/community/ajax.php", data={
+                'category_id': f"{item_id}",
+                'last_item_score': obj.get('last_item_score'),
+                'last_item_level': obj.get('last_item_level'),
+                'last_item_text': obj.get('last_item_text'),
+                'start_num': len(obj['items']),
+                'fetch_all': "0",
+                'a': "fetch_more_items",
+                'aops_logged_in': session['logged_in'],
+                'aops_user_id': session['user_id'],
+                'aops_session_id': session['id'],
+            })
+            new_obj = json.loads(await response.text())['response']
 
-        PartiesPos = [i for i in range(len(LesNums)) if LesNums[i][1] == True];PartiesPos+=[len(LesNums)]
-        selec=["_","_","_"]
-        reactions2=["0⃣","1⃣","2⃣","3⃣","4⃣","5⃣","6⃣","7⃣","8⃣","9⃣","✳","✅","❌"]
-        prob=await ctx.send("`Le problème apparaîtra ici.`")
-        def check2(reaction,user): return str(reaction.emoji) in reactions2 and user==ctx.message.author
-        while reac != reactions2[-1] :
-            embed = Embed(title=titre+" | Votre sélection actuelle : "+selec[0]+"-"+selec[1]+selec[2],colour=0x009fad)
-            embed.set_footer(text="AoPS | Attendez que les réactions soient toutes présentes.")
-            for i in range(len(NumsParties)) :
-                nbrs=''
-                for j in range(1,PartiesPos[i+1]-PartiesPos[i]) : nbrs+=LesNums[PartiesPos[i]+j][0]+' - '
-                embed.add_field(name="__"+str(i+1)+".__ `"+str(NumsParties[i])+"` _"+str(DescsParties[i])+"_",value=nbrs[:-3],inline=False)
-            await msg.edit(embed=embed)
-            await msg.edit(content="`Veuillez faire une sélection :`")
-            for r in reactions2 : await msg.add_reaction(r)
-            reac,user = await bot.wait_for('reaction_add',timeout=5*60,check=check2)
-            reac=str(reac)
-            if reac :
-                await msg.edit(content="`Chargement en cours ...`")
-                await msg.clear_reactions()
-                for i in range(len(reactions2)-1) :
-                    if reac == reactions2[10] : selec=['_','_','_'];break
-                    if reac == reactions2[11] and '_' not in selec :
-                        try :
-                            img=BytesIO((Probs[PartiesPos[int(selec[0])-1]-int(selec[0])+int(selec[1]+selec[2])]).screenshot_as_png);img.name='problem.png'
-                            #f = open('mt1.png', 'wb')
-                            #f.write(Probs[5].screenshot_as_png)
-                            #f.close()
-                            await prob.delete()
-                            prob=await ctx.send(file=File(img))
-                            break
-                        except Exception as exc :
-                            print(format_exc())
-                            await prob.edit(content="`Sélection invalide !`")
-                    if reac == reactions2[i] and '_' in selec and i<10 :
-                        if selec[0] == '_' : selec[0] = str(i)
-                        elif selec[1] == '_' : selec[1] = str(i)
-                        else : selec[2] = str(i)
-                        break
-            else :
-                await msg.edit(content="`Aucune réponse depuis cinq minutes. La requête a été abandonnée.`")
-                await msg.clear_reactions()
-                #await prob.delete() si y'a pas d'image ...
-                await msg.edit(embed=Embed(title='AoPS | Terminé', colour=0x009fad))
-                driver.quit();return
+            obj['items'] += new_obj['items'][1:]
+            for i in ('no_more_items', 'last_item_text', 'last_item_score', 'last_item_level'):
+                if i in new_obj: obj[i] = new_obj[i]
+                elif i in obj and i not in new_obj: del obj[i]
 
-        await msg.edit(content="`La requête a été terminée.`")
-        await msg.clear_reactions()
-        #await prob.delete() si y'a pas d'image ...
-        await msg.edit(embed=Embed(title='AoPS | Terminé', colour=0x009fad))
-        driver.quit()
+        cache[item_id] = obj
+    return cache[item_id]
+
+async def aopscore(bot, ctx, _aclient):
+    global aclient; aclient = _aclient
+    async with ctx.channel.typing():
+        session = await fetch_session()
+        client = {
+            'user_id': ctx.author.id,
+            'path': [13],
+            'last_activity': datetime.datetime.now(),
+            'page': [0],
+            'message': ctx,
+            'session': session,
+            'showed_pbs': {}
+        }
+        msg = await update_message(client)
+        client['message'] = msg
+        clients[msg.id] = client
+
+async def update_message(client, interaction = None):
+    cat_id = client['path'][-1]
+    category = await fetch_category(cat_id, client['session'], interaction)
+
+    folders = [item for item in category['items'] if item['item_type'].startswith("folder") or item['item_type'] in ('view_posts')]
+
+    page = client['page'][-1]
+    num_pages = math.ceil(len(folders) / NUM_ITEMS_PAGE)
+
+    showed_folders = folders[page*NUM_ITEMS_PAGE : (page+1)*NUM_ITEMS_PAGE]
+
+    embed = Embed(title=category['category_name'], color=0x009fad, url=f"https://artofproblemsolving.com/community/c{cat_id}")
+    embed.set_footer(text=f"AoPS | Page {page+1}/{num_pages}")
+
+    components = []
+    cur_row = []
+    p = NUM_ITEMS_PAGE * page + 1
+
+    thelist1, thelist2 = [], []
+
+    for item in showed_folders:
+        if len(cur_row) == 5:
+            components.append(ActionRow(*cur_row))
+            cur_row = []
+
+        if item['item_type'] == 'post':
+            if item['post_data']['post_type'] == 'view_posts_text':
+                thelist1.append(f"{item['item_text']}")
+                thelist2.append("")
+            elif item['item_text']:
+                text = item['post_data']['post_canonical'].replace("\r\n", " ")
+                if len(text) > 89: text = text[:89] + "…" # total size of field value must be < 1024
+
+                if thelist2 == []: thelist1.append(""); thelist2.append("")
+                thelist2[-1] += f"**{item['item_text']}** {text}\n"
+
+                cur_row.append(Button(style=ButtonStyle.blue, label=item['item_text'], custom_id=f"aops-problem-{cat_id}-{item['item_id']}"))
+                p += 1
+        else:
+            embed.add_field(name=f"{p}. {item['item_text']}", value=item['item_subtitle'] or "\u200b", inline=True)
+            cur_row.append(Button(style=ButtonStyle.blue, label=f"{p}", custom_id=f"aops-collection-{item['item_id']}"))
+            p += 1
+
+    for a, b in zip(thelist1, thelist2):
+        embed.add_field(name=a or "\u200b", value=b or "\u200b", inline=False)
+
+    if cur_row: components.append(ActionRow(*cur_row))
+
+    components.append(ActionRow(
+        Button(style=ButtonStyle.green, emoji="🔙", custom_id=f"aops-back", disabled=len(client['path']) == 1),
+        Button(style=ButtonStyle.green, emoji="◀", label="Précédent", custom_id=f"aops-prev", disabled=page == 0),
+        Button(style=ButtonStyle.green, emoji="▶", label="Suivant", custom_id=f"aops-next", disabled=page == num_pages-1),
+        Button(style=ButtonStyle.red, emoji="❌", custom_id=f"aops-cancel"),
+    ))
+
+    if interaction:
+        await interaction.respond(type=7, embed=embed, components=components)
+    else:
+        return await (client['message'].edit if isinstance(client['message'], Message) else client['message'].send)(embed=embed, components=components)
+
+async def process_click(interaction, _aclient):
+    global aclient; aclient = _aclient
+    if interaction.message.id not in clients:
+        await interaction.respond(type=7, content="`Aucune réponse depuis 15 minutes. La requête a été abandonnée.`", embed=Embed(title='AoPS | Terminé', colour=0x009fad), components=[])
+        return
+    client = clients[interaction.message.id]
+    if interaction.author.id != client['user_id']:
+        await interaction.respond(type=4, content=f"Seul <@!{client['user_id']}> peut utiliser cette instance. :wink:")
+        return
+
+    action = interaction.custom_id[5:]
+    client['last_activity'] = datetime.datetime.now()
+
+    if action.startswith('collection-'):
+        item_id = int(action.replace('collection-', ''))
+        client['path'].append(item_id)
+        client['page'].append(0)
+        await update_message(client, interaction)
+
+    elif action.startswith('problem-'):
+        cat_id, item_id = map(int, action.replace('problem-', '').split('-'))
+
+        await interaction.respond(type=6)
+
+        if item_id in client['showed_pbs']:
+            try:
+                await client['showed_pbs'][item_id].delete()
+            except (NotFound, AttributeError): pass
+            del client['showed_pbs'][item_id]
+            return
+
+        cat = await fetch_category(cat_id, client['session'])
+        sub_cat_name = ""
+        for i in cat['items']:
+            if i['post_data']['post_type'] == 'view_posts_text':
+                sub_cat_name = f" ▹ {i['item_text']}" if i['item_text'] else ""
+            elif i['item_id'] == item_id:
+                problem = i; break
+
+        if not os.path.isdir('tmp/'): os.mkdir('tmp')
+
+        async with interaction.channel.typing():
+            if not os.path.exists(f"tmp/aops-{item_id}.png"):
+                with open(f"tmp/aops-{item_id}.html", "w") as file:
+                    file.write("<style>body{zoom: 200%;}img.latexcenter{display:block;margin:auto;padding:1em 0;height:auto;}</style>")
+                    file.write(problem['post_data']['post_rendered'].replace("\"//", "\"https://"))
+                process = await create_subprocess_exec("wkhtmltoimage", "--quality", "1", "--disable-javascript", f"tmp/aops-{item_id}.html", f"tmp/aops-{item_id}.png")
+                await process.communicate()
+                os.remove(f"tmp/aops-{item_id}.html")
+
+            embed = Embed(title=f"{cat['category_name']}{sub_cat_name} ▹ {problem['item_text']}", color=0x009fad, url=f"https://artofproblemsolving.com/community/c6h{problem['post_data']['topic_id']}p{problem['post_data']['post_id']}")
+            embed.set_image(url=f"attachment://aops-{item_id}.png")
+
+        msg = await interaction.channel.send(embed=embed, file=File(f"tmp/aops-{item_id}.png"), reference=interaction.message, mention_author=False)
+
+        client['showed_pbs'][item_id] = msg
+
+        #os.remove(f"tmp/aops-{item_id}.png")
+
+    elif action == 'back':
+        client['path'].pop()
+        client['page'].pop()
+        await update_message(client, interaction)
+
+    elif action == 'prev':
+        client['page'][-1] -= 1
+        await update_message(client, interaction)
+
+    elif action == 'next':
+        client['page'][-1] += 1
+        await update_message(client, interaction)
+
+    elif action == 'cancel':
+        await interaction.respond(type=7, content="`La requête a été terminée.`", embed=Embed(title='AoPS | Terminé', colour=0x009fad), components=[])
+        del clients[interaction.message.id]
+
+    else:
+        await interaction.respond(type=4, content=":warning: Une erreur est survenue.")
+        return
+
+async def task(_aclient): # destroy expired clients
+    global aclient; aclient = _aclient
+    limit = datetime.datetime.now() - datetime.timedelta(minutes=15)
+    for msg_id, client in list(clients.items()):
+        if client['last_activity'] < limit:
+            try:
+                await client['message'].edit(content="`Aucune réponse depuis 15 minutes. La requête a été abandonnée.`", embed=Embed(title='AoPS | Terminé', colour=0x009fad), components=[])
+                del clients[msg_id]
+            except NotFound: pass

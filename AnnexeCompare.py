@@ -2,6 +2,7 @@ from discord import *
 from bs4 import BeautifulSoup
 from matplotlib import pyplot as plt
 import datetime
+from io import BytesIO
 
 MT_LEVELS = {
     0:    "#888888",
@@ -17,7 +18,7 @@ MT_LEVELS = {
     9999: None
 }
 
-async def plot_user(user_id, aclient, ctx):
+async def plot_user(user_id, aclient, ctx, ax, **kwargs):
     resp = await aclient.get(f"https://www.mathraining.be/users/{user_id}")
     
     soup = BeautifulSoup(await resp.text(), features='lxml')
@@ -58,45 +59,64 @@ async def plot_user(user_id, aclient, ctx):
     if not x: # 0 points
         await ctx.channel.send(f"Impossible de se comparer avec **{name}**.")
         return 0, 0, 0, 0
-    
+
     x.insert(0, x[0])
     y.insert(0, 0)
 
+    ax.plot(x, y, **kwargs)
+
     return x, y, name, points
 
-async def make_graph(ctx, id1, id2, aclient):
-    async with ctx.channel.typing():
-        x, y, name, pts = await plot_user(id1, aclient, ctx)
-        if not x: return # if error
+async def render_levels(fig, ax, min_x, max_x, max_y):
+    levels_pts = list(MT_LEVELS.keys())
+    levels_colors = list(MT_LEVELS.values())
+    for i in range(len(MT_LEVELS)-1):
+        ax.axhspan(levels_pts[i], levels_pts[i+1], alpha=1, color=levels_colors[i])
 
-        x2, y2, name2, pts2 = await plot_user(id2, aclient, ctx)
-        if not x2: return
-        
-        fig, ax = plt.subplots(figsize=(9,5))
-        
-        ax.plot(x, y, color='white', linewidth=2, marker='o', markersize=4)
-        ax.plot(x2, y2, color='yellow', linewidth=2, marker='o', markersize=4)
+    if max_y > 5000:
+        levels_pts.remove(0)
+        levels_pts.remove(200)
+    plt.yticks(levels_pts[:-1], levels_pts[:-1])
 
-        levels_pts = list(MT_LEVELS.keys())
-        levels_colors = list(MT_LEVELS.values())
-        for i in range(len(MT_LEVELS)-1):
-            ax.axhspan(levels_pts[i], levels_pts[i+1], alpha=1, color=levels_colors[i])
+    ax.set_xlim(min_x, max_x)
+    ax.set_ylim(0, int(max_y * 1.2))
+    plt.margins(y=0)
+    fig.tight_layout()
 
-        if y[-1] > 5000 or y2[-1] > 5000:
-            levels_pts.remove(0)
-            levels_pts.remove(200)
-        plt.yticks(levels_pts[:-1], levels_pts[:-1])
 
-        ax.set_xlim(min(x[0], x2[0]), max(x[-1], x2[-1]))
-        ax.set_ylim(0, int(max(y[-1], y2[-1]) * 1.2))
+async def compare_graph(ctx, id1, id2, aclient):
+    fig, ax = plt.subplots(figsize=(9,5))
+    x, y, name, pts = await plot_user(id1, aclient, ctx, ax, color='white', linewidth=2, marker='o', markersize=4)
+    if not x: return 0, 0, 0, 0, 0 # if error
 
-        ax.legend([name, name2], loc=2)
+    x2, y2, name2, pts2 = await plot_user(id2, aclient, ctx, ax, color='yellow', linewidth=2, marker='o', markersize=4)
+    if not x2: return 0, 0, 0, 0, 0
 
-        plt.margins(y=0)
-        fig.tight_layout()
-        plt.savefig("compare.png")
+    await render_levels(fig, ax, min(x[0], x2[0]), max(x[-1], x2[-1]), max(y[-1], y2[-1]))
 
-        file = File("compare.png")
-        embed = Embed(title=f'**{name} ({pts})** vs **{name2} ({pts2})**', color=0x87CEEB)
-        embed.set_image(url="attachment://compare.png")
-        await ctx.send(file=file, embed=embed)
+    ax.legend([name, name2], loc=2)
+    buf = BytesIO()
+    plt.savefig(buf, format='png')
+    buf.name = 'compare.png'
+    buf.seek(0)
+
+    return buf, name, pts, name2, pts2
+
+async def progress_graph(ctx, id, aclient):
+    fig, ax = plt.subplots(figsize=(9,5))
+
+    x, y, name, pts = await plot_user(id, aclient, ctx, ax, color='white', linewidth=2, marker='o', markersize=4)
+    if not x: return 0, 0, 0, 0 # if error
+
+    await render_levels(fig, ax, x[0], x[-1], y[-1])
+
+    buf = BytesIO()
+    plt.savefig(buf, format='png')
+    buf.name = 'progress.png'
+    buf.seek(0)
+
+    color = 0
+    for i in reversed(MT_LEVELS.keys()):
+        if i <= pts: color = int(MT_LEVELS[i].replace("#", ""), 16); break
+
+    return buf, name, pts, color
