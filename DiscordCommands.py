@@ -515,17 +515,30 @@ async def corrections(ctx,switch=""):
     """Affiche la liste des correcteurs et leurs nombres de corrections"""
     async with aclient.get("https://www.mathraining.be/correctors") as response: text = await response.text()
     soup = BeautifulSoup(text, "lxml")
-    corrections = soup.find_all('td', attrs={"style":u"text-align:center;"})
-    correcteurs = soup.find_all('a',{"href":compile(r"/users/.*")})[31:]
-    msg=''
-    for loop in range(0, len(corrections),2):
-        if corrections[loop+1].getText() != "0" or switch == "all":
-            n=len(correcteurs[loop//2].getText())
-            m=len(corrections[loop].getText())
-            msg+='**'+correcteurs[loop//2].getText().strip()+' :** '+(31-n)*' '+corrections[loop].getText() +(7-m)*" " +corrections[loop+1].getText() + "\n"
-    embed = Embed(title="Corrections ( ... corrections dont ... les deux dernières semaines) : ", color=0xFF4400,description = msg[0:2047])
-    #Petit bug sur les espaces que j'arrive pas à gérer ... + Mettre de plus gros espaces pour économiser les caractères
-    #cf. https://emptycharacter.com/ (en fait je crois qu'il y a pas plus gros ...)
+
+    sum1, sum2 = 0, 0
+    rows = []
+    max1, max2 = 0, 0
+    for corrector in soup.find_all('table')[1].find_all('tr')[1:]:
+        tds = corrector.find_all('td')
+        if tds[2].text != '0' or switch == 'all':
+            rows.append((tds[0].text, tds[1].text, tds[2].text))
+            max1 = max(max1, len(tds[0].text))
+            max2 = max(max2, len(tds[1].text))
+        sum1 += int(tds[1].text)
+        sum2 += int(tds[2].text)
+
+    s = []
+    format_str = f"{{:<{max1 + 3}}} {{:<{max2 + 3}}} {{}}\n"
+    i = 0
+    for row in rows:
+        if i % 20 == 0:
+            s.append("")
+        s[-1] += format_str.format(*row)
+        i += 1
+    embed = Embed(title=f"Corrections ({sum1} corrections dont {sum2} les deux dernières semaines) : ", color=0xFF4400)
+    for i in s:
+        embed.add_field(name="\u200b", value="```"+i+"```", inline=False)
     await ctx.send(embed=embed)
 
 @bot.command()
