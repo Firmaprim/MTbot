@@ -215,6 +215,6 @@ async def task(_aclient): # destroy expired clients
     for msg_id, client in list(clients.items()):
         if client['last_activity'] < limit:
             try:
-                await client['message'].edit(content="`Aucune réponse depuis 15 minutes. La requête a été abandonnée.`", embed=Embed(title='AoPS | Terminé', colour=0x009fad), view=View())
+                await client['message'].edit(content="`Aucune réponse depuis 15 minutes. La requête a été abandonnée.`", embed=Embed(title='AoPS | Terminé', colour=0x009fad), view=ui.View())
                 del clients[msg_id]
             except NotFound: pass
