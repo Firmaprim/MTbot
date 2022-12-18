@@ -4,7 +4,6 @@ Code source du bot du Discord de Mathraining.
 
 Dépendances sur pip :
  - discord.py
- - discord-components
  - aiohttp
  - bs4 (beautiful soup 4)
  - lxml (utiliser https://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml si pip ne marche pas)

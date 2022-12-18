@@ -2,8 +2,6 @@ from discord import *
 from discord.ext import commands, tasks
 from discord.utils import get
 
-from discord_components import *
-
 import datetime, pytz
 from email.utils import parsedate_to_datetime
 
@@ -24,7 +22,7 @@ import AopsCore
 from traceback import format_exc
 from yaml import safe_load
 
-intents = Intents.default()
+intents = Intents.all()
 intents.members = True
 
 description = 'Bot Mathraining.'
@@ -219,7 +217,6 @@ async def on_ready():
     global aclient
 
     print("Chargement ...", end="\r")
-    DiscordComponents(bot)
 
     users_links, users_links_tmp, msg_ids_links, msg_ids_links_tmp = {}, {}, {}, {}
 
@@ -479,10 +476,11 @@ async def info(ctx, idMT: MTid = None):
 
 @bot.event
 @log_errors("BUTTON")
-async def on_button_click(interaction):
+async def on_interaction(interaction):
     #print(f"{interaction.author} a cliqué sur {interaction.custom_id}")
-    if interaction.custom_id.startswith("aops-"):
-        await AopsCore.process_click(interaction, aclient)
+    if interaction.type == InteractionType.component:
+        if interaction.data['custom_id'].startswith("aops-"):
+            await AopsCore.process_click(interaction, aclient)
 
 @bot.command(pass_context=True)
 @log_errors("PROGRESS")
