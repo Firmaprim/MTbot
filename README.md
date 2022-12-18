@@ -7,7 +7,7 @@ Dépendances sur pip :
  - discord-components
  - aiohttp
  - bs4 (beautiful soup 4)
- - lxml
+ - lxml (utiliser https://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml si pip ne marche pas)
  - PyYAML
  - Matplotlib
  - pytz
