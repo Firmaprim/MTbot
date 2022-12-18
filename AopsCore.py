@@ -1,7 +1,6 @@
 from discord import *
 from discord.ext import commands
 from discord.utils import get
-from discord_components import *
 
 from asyncio import *
 from asyncio import subprocess
@@ -12,6 +11,7 @@ from bs4 import BeautifulSoup
 from traceback import format_exc
 
 NUM_ITEMS_PAGE = 10
+MAX_LIMIT = 500
 
 clients, cache = {}, {}
 
@@ -33,8 +33,8 @@ async def fetch_category(item_id, session, interaction=None):
         })
         obj = json.loads(await response.text())['response']['category']
 
-        while not obj['no_more_items']:
-            if interaction: await interaction.respond(type=6)
+        while not obj['no_more_items'] and len(obj['items']) < MAX_LIMIT:
+            if interaction and not interaction.response.is_done(): await interaction.response.defer()
             #print(f"AoPS: Fetching more items from category {item_id}")
             response = await aclient.post("https://artofproblemsolving.com/m/community/ajax.php", data={
                 'category_id': f"{item_id}",
@@ -75,7 +75,7 @@ async def aopscore(bot, ctx, _aclient):
         client['message'] = msg
         clients[msg.id] = client
 
-async def update_message(client, interaction = None):
+async def update_message(client, interaction=None):
     cat_id = client['path'][-1]
     category = await fetch_category(cat_id, client['session'], interaction)
 
@@ -89,17 +89,12 @@ async def update_message(client, interaction = None):
     embed = Embed(title=category['category_name'], color=0x009fad, url=f"https://artofproblemsolving.com/community/c{cat_id}")
     embed.set_footer(text=f"AoPS | Page {page+1}/{num_pages}")
 
-    components = []
-    cur_row = []
+    view = ui.View()
     p = NUM_ITEMS_PAGE * page + 1
 
     thelist1, thelist2 = [], []
 
     for item in showed_folders:
-        if len(cur_row) == 5:
-            components.append(ActionRow(*cur_row))
-            cur_row = []
-
         if item['item_type'] == 'post':
             if item['post_data']['post_type'] == 'view_posts_text':
                 thelist1.append(f"{item['item_text']}")
@@ -111,41 +106,40 @@ async def update_message(client, interaction = None):
                 if thelist2 == []: thelist1.append(""); thelist2.append("")
                 thelist2[-1] += f"**{item['item_text']}** {text}\n"
 
-                cur_row.append(Button(style=ButtonStyle.blue, label=item['item_text'], custom_id=f"aops-problem-{cat_id}-{item['item_id']}"))
+                view.add_item(ui.Button(style=ButtonStyle.primary, label=item['item_text'], custom_id=f"aops-problem-{cat_id}-{item['item_id']}"))
                 p += 1
         else:
             embed.add_field(name=f"{p}. {item['item_text']}", value=item['item_subtitle'] or "\u200b", inline=True)
-            cur_row.append(Button(style=ButtonStyle.blue, label=f"{p}", custom_id=f"aops-collection-{item['item_id']}"))
+            view.add_item(ui.Button(style=ButtonStyle.primary, label=f"{p}", custom_id=f"aops-collection-{item['item_id']}"))
             p += 1
 
     for a, b in zip(thelist1, thelist2):
         embed.add_field(name=a or "\u200b", value=b or "\u200b", inline=False)
 
-    if cur_row: components.append(ActionRow(*cur_row))
-
-    components.append(ActionRow(
-        Button(style=ButtonStyle.green, emoji="🔙", custom_id=f"aops-back", disabled=len(client['path']) == 1),
-        Button(style=ButtonStyle.green, emoji="◀", label="Précédent", custom_id=f"aops-prev", disabled=page == 0),
-        Button(style=ButtonStyle.green, emoji="▶", label="Suivant", custom_id=f"aops-next", disabled=page == num_pages-1),
-        Button(style=ButtonStyle.red, emoji="❌", custom_id=f"aops-cancel"),
-    ))
+    view.add_item(ui.Button(row=4, style=ButtonStyle.success, emoji="🔙", custom_id=f"aops-back", disabled=len(client['path']) == 1))
+    view.add_item(ui.Button(row=4, style=ButtonStyle.success, emoji="◀", label="Précédent", custom_id=f"aops-prev", disabled=page == 0))
+    view.add_item(ui.Button(row=4, style=ButtonStyle.success, emoji="▶", label="Suivant", custom_id=f"aops-next", disabled=page == num_pages-1))
+    view.add_item(ui.Button(row=4, style=ButtonStyle.danger, emoji="❌", custom_id=f"aops-cancel"))
 
     if interaction:
-        await interaction.respond(type=7, embed=embed, components=components)
+        if interaction.response.is_done():
+            await interaction.followup.edit_message(client['message'].id, embed=embed, view=view)
+        else:
+            await interaction.response.edit_message(embed=embed, view=view)
     else:
-        return await (client['message'].edit if isinstance(client['message'], Message) else client['message'].send)(embed=embed, components=components)
+        return await client['message'].send(embed=embed, view=view)
 
 async def process_click(interaction, _aclient):
     global aclient; aclient = _aclient
     if interaction.message.id not in clients:
-        await interaction.respond(type=7, content="`Aucune réponse depuis 15 minutes. La requête a été abandonnée.`", embed=Embed(title='AoPS | Terminé', colour=0x009fad), components=[])
+        await interaction.response.edit_message(content="`Aucune réponse depuis 15 minutes. La requête a été abandonnée.`", embed=Embed(title='AoPS | Terminé', colour=0x009fad), view=ui.View())
         return
     client = clients[interaction.message.id]
-    if interaction.author.id != client['user_id']:
-        await interaction.respond(type=4, content=f"Seul <@!{client['user_id']}> peut utiliser cette instance. :wink:")
+    if interaction.user.id != client['user_id']:
+        await interaction.response.send_message(ephemeral=True, content=f"Seul <@!{client['user_id']}> peut utiliser cette instance.")
         return
 
-    action = interaction.custom_id[5:]
+    action = interaction.data['custom_id'][5:]
     client['last_activity'] = datetime.datetime.now()
 
     if action.startswith('collection-'):
@@ -157,14 +151,15 @@ async def process_click(interaction, _aclient):
     elif action.startswith('problem-'):
         cat_id, item_id = map(int, action.replace('problem-', '').split('-'))
 
-        await interaction.respond(type=6)
-
         if item_id in client['showed_pbs']:
+            await interaction.response.defer()
             try:
                 await client['showed_pbs'][item_id].delete()
             except (NotFound, AttributeError): pass
             del client['showed_pbs'][item_id]
             return
+
+        await interaction.response.defer(thinking=True)
 
         cat = await fetch_category(cat_id, client['session'])
         sub_cat_name = ""
@@ -176,19 +171,18 @@ async def process_click(interaction, _aclient):
 
         if not os.path.isdir('tmp/'): os.mkdir('tmp')
 
-        async with interaction.channel.typing():
-            if not os.path.exists(f"tmp/aops-{item_id}.png"):
-                with open(f"tmp/aops-{item_id}.html", "w") as file:
-                    file.write("<style>body{zoom: 200%;}img.latexcenter{display:block;margin:auto;padding:1em 0;height:auto;}</style>")
-                    file.write(problem['post_data']['post_rendered'].replace("\"//", "\"https://"))
-                process = await create_subprocess_exec("wkhtmltoimage", "--quality", "1", "--disable-javascript", f"tmp/aops-{item_id}.html", f"tmp/aops-{item_id}.png")
-                await process.communicate()
-                os.remove(f"tmp/aops-{item_id}.html")
+        if not os.path.exists(f"tmp/aops-{item_id}.png"):
+            with open(f"tmp/aops-{item_id}.html", "w") as file:
+                file.write("<style>body{zoom: 200%;}img.latexcenter{display:block;margin:auto;padding:1em 0;height:auto;}</style>")
+                file.write(problem['post_data']['post_rendered'].replace("\"//", "\"https://"))
+            process = await create_subprocess_exec("wkhtmltoimage", "--quality", "1", "--disable-javascript", f"tmp/aops-{item_id}.html", f"tmp/aops-{item_id}.png")
+            await process.communicate()
+            os.remove(f"tmp/aops-{item_id}.html")
 
-            embed = Embed(title=f"{cat['category_name']}{sub_cat_name} ▹ {problem['item_text']}", color=0x009fad, url=f"https://artofproblemsolving.com/community/c6h{problem['post_data']['topic_id']}p{problem['post_data']['post_id']}")
-            embed.set_image(url=f"attachment://aops-{item_id}.png")
+        embed = Embed(title=f"{cat['category_name']}{sub_cat_name} ▹ {problem['item_text']}", color=0x009fad, url=f"https://artofproblemsolving.com/community/c6h{problem['post_data']['topic_id']}p{problem['post_data']['post_id']}")
+        embed.set_image(url=f"attachment://aops-{item_id}.png")
 
-        msg = await interaction.channel.send(embed=embed, file=File(f"tmp/aops-{item_id}.png"), reference=interaction.message, mention_author=False)
+        msg = await interaction.followup.send(embed=embed, file=File(f"tmp/aops-{item_id}.png"))
 
         client['showed_pbs'][item_id] = msg
 
@@ -208,11 +202,11 @@ async def process_click(interaction, _aclient):
         await update_message(client, interaction)
 
     elif action == 'cancel':
-        await interaction.respond(type=7, content="`La requête a été terminée.`", embed=Embed(title='AoPS | Terminé', colour=0x009fad), components=[])
+        await interaction.response.edit_message(content="`La requête a été terminée.`", embed=Embed(title='AoPS | Terminé', colour=0x009fad), view=ui.View())
         del clients[interaction.message.id]
 
     else:
-        await interaction.respond(type=4, content=":warning: Une erreur est survenue.")
+        await interaction.response.send_message(content=":warning: Une erreur est survenue.")
         return
 
 async def task(_aclient): # destroy expired clients
@@ -221,6 +215,6 @@ async def task(_aclient): # destroy expired clients
     for msg_id, client in list(clients.items()):
         if client['last_activity'] < limit:
             try:
-                await client['message'].edit(content="`Aucune réponse depuis 15 minutes. La requête a été abandonnée.`", embed=Embed(title='AoPS | Terminé', colour=0x009fad), components=[])
+                await client['message'].edit(content="`Aucune réponse depuis 15 minutes. La requête a été abandonnée.`", embed=Embed(title='AoPS | Terminé', colour=0x009fad), view=ui.View())
                 del clients[msg_id]
             except NotFound: pass
