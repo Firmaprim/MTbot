@@ -33,7 +33,7 @@ async def fetch_category(item_id, session, interaction=None):
         })
         obj = json.loads(await response.text())['response']['category']
 
-        while not obj['no_more_items'] and len(obj['items']) < MAX_LIMIT:
+        while not obj.get('no_more_items', True) and len(obj['items']) < MAX_LIMIT:
             if interaction and not interaction.response.is_done(): await interaction.response.defer()
             #print(f"AoPS: Fetching more items from category {item_id}")
             response = await aclient.post("https://artofproblemsolving.com/m/community/ajax.php", data={
