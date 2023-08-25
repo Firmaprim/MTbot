@@ -126,7 +126,7 @@ def FindMT(idMT: int, en_attente=False) :
         if idMT == mt: return discord
     return 0
 
-regex_auth_token = compile(r'<input type="hidden" name="authenticity_token" value="([A-Za-z0-9+/=]+)" />')
+regex_auth_token = compile(r'<input type="hidden" name="authenticity_token" value="(.+?)"')
 
 async def mt_connexion(aclient):
     try:
