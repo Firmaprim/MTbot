@@ -143,7 +143,7 @@ async def mt_connexion(aclient):
           
 async def mt_send_mp(idMT, msg):
     resp = await aclient.get(f'https://www.mathraining.be/discussions/new')
-    authenticity_token = regex_auth_token.search(await resp.text()).group(1)
+    authenticity_token = regex_auth_token.findall(await resp.text())[-1]
     req = await aclient.post('https://www.mathraining.be/discussions', data = {
         'utf8': "✓",
         'authenticity_token': authenticity_token,
