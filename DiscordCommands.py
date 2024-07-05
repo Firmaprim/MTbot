@@ -553,7 +553,7 @@ async def hi(ctx):
 
 @bot.command(pass_context = True)
 async def arp(ctx, message):
-    await ctx.send("@<584673135991717890>", message)
+    await ctx.send("<@584673135991717890>", message)
 
 @bot.command(pass_context = True)
 @admin_or_modo
