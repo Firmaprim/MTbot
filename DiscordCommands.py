@@ -653,6 +653,7 @@ async def help(ctx):
     embed.add_field(name="corrections (all)", value="Affiche la liste des correcteurs (qui ont corrigé récemment ou pas avec \"all\") et leurs contributions.", inline=False)
     embed.add_field(name="solved utilisateur numPb", value="Indique si le problème numéro numPb a été résolu par l'utilisateur.", inline=False)
     embed.add_field(name="hi", value="Permet d'effectuer un ping avec le bot.", inline=False)
+    embed.add_field(name="arp", value="Ping ARP, afin de lui transmettre un message de façon efficace.", inline=False)
     embed.add_field(name="compte (a,b,c,d,e,f ÀTrouver NbrSolutions)", value="Effectue un tirage de chiffres si aucun argument n'est donné, résout le tirage sinon.", inline=False)
     embed.add_field(name="lettres", value="Effectue un tirage de lettres.", inline=False)
     embed.add_field(name="pendu", value="Pour jouer au pendu.", inline=False)
