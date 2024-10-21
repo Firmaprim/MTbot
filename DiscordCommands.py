@@ -596,11 +596,18 @@ async def citation(ctx):
     bout = str(soup.find_all('p')[randint(0,756)]).replace("<br/>", "\n") 
     citation = (BeautifulSoup(bout, "lxml").getText()).split('\n')
     c=''
-    for s in citation[1:-2] : c+=(s+'\n')
-    c+=citation[-2]
+    
+    if len(citation) == 2:
+        c+=(citation[1])
+        footer = 'Unknown Source'
+    else:    
+        for s in citation[1:-2] : c+=(s+'\n')
+        c+=citation[-2]
+        footer = citation[-1]
+    
     embed = Embed(title=citation[0], colour=0x964b00, description='_'+c+'_')
-    embed.set_author(name="Citations Mathématiques")
-    embed.set_footer(text=citation[-1])
+    embed.set_author(name="Citations Mathématiques") 
+    embed.set_footer(text=footer)
     await ctx.send(embed=embed)
 
 @bot.command(pass_context = True)
