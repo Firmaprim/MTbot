@@ -593,17 +593,21 @@ async def pendu(ctx, tuile: str = ''):
 async def citation(ctx):
     async with aclient.get("http://math.furman.edu/~mwoodard/www/data.html") as response: text = await response.text()
     soup = BeautifulSoup(text, "lxml") #Penser à modifier la source soi-même ?
-    bout = str(soup.find_all('p')[randint(0,756)]).replace("<br/>", "\n") 
+    bout = str(soup.find_all('p')[randint(0,756)]).replace("<br/>", "\n").replace("<i>", "[SOURCE]")
     citation = (BeautifulSoup(bout, "lxml").getText()).split('\n')
     c=''
     
+    if len(citation) == 2 or not citation[-1].__contains__("[SOURCE]"):
+        footer = 'Unknown Source'
+    else:
+        citation[-1] = citation[-1].replace('[SOURCE]', '') 
+        footer = citation[-1]
+    
     if len(citation) == 2:
         c+=(citation[1])
-        footer = 'Unknown Source'
-    else:    
+    else:
         for s in citation[1:-2] : c+=(s+'\n')
         c+=citation[-2]
-        footer = citation[-1]
     
     embed = Embed(title=citation[0], colour=0x964b00, description='_'+c+'_')
     embed.set_author(name="Citations Mathématiques") 
