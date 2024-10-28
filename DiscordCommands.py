@@ -58,9 +58,9 @@ async def GetMTScore(idMT: int, ret_soup = False) :
 
     score = 0
     tds = soup.find_all('td', limit = 5)
-    if len(tds) == 0: score = 2 # Identifiant non attribué
-    elif len(tds) > 4: score = int(tds[4].getText().strip())
+    if len(tds) <= 4 : score = 2 # Identifiant non attribué
     elif tds[1].getText().strip() in ("Administrateur", "Administratrice"): score = 1 # Administrateur
+    elif len(tds) > 4: score = int(tds[4].getText().strip().replace('\u2009', ''))
     return (score, soup) if ret_soup else score
 
 def roleScore(s):
