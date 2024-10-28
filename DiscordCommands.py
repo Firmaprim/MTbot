@@ -469,7 +469,7 @@ async def info(ctx, idMT: MTid = None):
     elif country == "uk": country = "gb"
 
     spacing = int((40-(9+len(str(idMT))+7 + len(Infos[6]) + 4 + len(Infos[8])))/3)
-    embed = Embed(title=f"{Infos[0]} - {Infos[1]} :flag_{country}:", url=url, description="Membre n°"+str(idMT)+ spacing*' ' +"Rang : "+Infos[6]+ spacing*' ' +"Top "+Infos[8]+ spacing*' ' +" <:gold:836978754454028338> : "+Infos[9]+" <:silver:836978754433319002> : "+Infos[10]+" <:bronze:836978754467135519> : "+Infos[11]+" <:mh:836978314387259442> : "+Infos[12], color=int(soup.find('td').find_all('span')[-1]['style'].split('#')[1].split(';')[0], 16))
+    embed = Embed(title=f"{Infos[0]} - {Infos[1]} :flag_{country}:", url=url, description=f"Membre n° {str(idMT)}{spacing*' ' }Rang : {Infos[6]}{spacing*' '}Top {Infos[8]}{spacing*' '}<:gold:836978754454028338> : {Infos[9]} <:silver:836978754433319002> : {Infos[10]} <:bronze:836978754467135519> : {Infos[11]} <:mh:836978314387259442> : {Infos[12]}")
     embed.add_field(name="Score : ", value=Infos[4], inline=True)
     embed.add_field(name="Exercices résolus : ", value=''.join(Infos[14].split()), inline=True)
     embed.add_field(name="Problèmes résolus : ", value=''.join(Infos[16].split()), inline=True)
