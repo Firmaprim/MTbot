@@ -339,7 +339,7 @@ async def ask(ctx,idMTnew: int = 0):
     (idMathraining est le nombre dans l'url de votre page de profil sur le site)'''
 
     if idMTnew == 0 :
-        await ctx.send("`Commande pour se relier au bot.` Cf. https://discord.com/channels/430287489664548884/430287735928913920/453217493344059404")
+        await ctx.send("`Commande pour se relier au bot.` \n Cf. https://discord.com/channels/430287489664548884/430287735928913920/453217493344059404")
     else :
         pascontent="Nicolas ne va pas être content si vous vous êtes fait un autre compte !! :sweat_smile:"
         contact="Contactez un Admin ou un Modo si vous souhaitez changer de compte."
