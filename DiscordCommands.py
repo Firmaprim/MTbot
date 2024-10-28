@@ -144,11 +144,13 @@ async def mt_connexion(aclient):
 async def mt_send_mp(idMT, msg):
     resp = await aclient.get(f'https://www.mathraining.be/discussions/new')
     authenticity_token = regex_auth_token.findall(await resp.text())[-1]
-    req = await aclient.post('https://www.mathraining.be/discussions', data = {
+    req = await aclient.post('https://www.mathraining.be/tchatmessages', data = {
         'utf8': "✓",
         'authenticity_token': authenticity_token,
-        'destinataire': f"{idMT}",
-        'content': msg,
+        'qui': f"{idMT}",
+        'stop': 'on',
+        'tchatmessage[content]': msg,
+        'commit': 'Envoyer'
     }, allow_redirects=False)
     if req.status != 302:
         raise RuntimeError("Impossible d'envoyer un message privé sur mathraining. Vérifiez que le login/mot de passe sont corrects.")
@@ -593,14 +595,25 @@ async def pendu(ctx, tuile: str = ''):
 async def citation(ctx):
     async with aclient.get("http://math.furman.edu/~mwoodard/www/data.html") as response: text = await response.text()
     soup = BeautifulSoup(text, "lxml") #Penser à modifier la source soi-même ?
-    bout = str(soup.find_all('p')[randint(0,756)]).replace("<br/>", "\n") 
+    bout = str(soup.find_all('p')[randint(0,756)]).replace("<br/>", "\n").replace("<i>", "[SOURCE]")
     citation = (BeautifulSoup(bout, "lxml").getText()).split('\n')
     c=''
-    for s in citation[1:-2] : c+=(s+'\n')
-    c+=citation[-2]
+    
+    if len(citation) == 2 or not citation[-1].__contains__("[SOURCE]"):
+        footer = 'Unknown Source'
+    else:
+        citation[-1] = citation[-1].replace('[SOURCE]', '') 
+        footer = citation[-1]
+    
+    if len(citation) == 2:
+        c+=(citation[1])
+    else:
+        for s in citation[1:-2] : c+=(s+'\n')
+        c+=citation[-2]
+    
     embed = Embed(title=citation[0], colour=0x964b00, description='_'+c+'_')
-    embed.set_author(name="Citations Mathématiques")
-    embed.set_footer(text=citation[-1])
+    embed.set_author(name="Citations Mathématiques") 
+    embed.set_footer(text=footer)
     await ctx.send(embed=embed)
 
 @bot.command(pass_context = True)
