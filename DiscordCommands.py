@@ -36,11 +36,10 @@ with open("Problems.txt") as file:
     PROBLEMS_MT = { int(line.split()[0]): int(line.split()[1]) for line in file }
 
 NomsRoles = ["Grand Maitre", "Maitre", "Expert", "Chevronné", "Expérimenté", "Qualifié", "Compétent", "Initié", "Débutant", "Novice"]
-
-#colors = {'Novice' : 0x888888, 'Débutant' : 0x08D508, 'Débutante' : 0x08D508, 'Initié' : 0x008800, 'Initiée' : 0x008800,
-#          'Compétent' : 0x00BBEE, 'Compétente' : 0x00BBEE, 'Qualifié' : 0x0033FF, 'Qualifiée' : 0x0033FF, 'Expérimenté' : 0xDD77FF,
-#          'Expérimentée' : 0xDD77FF, 'Chevronné' : 0xA000A0, 'Chevronnée' : 0xA000A0, 'Expert' : 0xFFA000, 'Experte' : 0xFFA000,
-#          'Maître' : 0xFF4400, 'Grand Maître' : 0xCC0000}
+colors = {'Novice' : 0x888888, 'Débutant' : 0x08D508, 'Débutante' : 0x08D508, 'Initié' : 0x008800, 'Initiée' : 0x008800,
+          'Compétent' : 0x00BBEE, 'Compétente' : 0x00BBEE, 'Qualifié' : 0x0033FF, 'Qualifiée' : 0x0033FF, 'Expérimenté' : 0xDD77FF,
+          'Expérimentée' : 0xDD77FF, 'Chevronné' : 0xA000A0, 'Chevronnée' : 0xA000A0, 'Expert' : 0xFFA000, 'Experte' : 0xFFA000,
+          'Maître' : 0xFF4400, 'Grand Maître' : 0xCC0000}
 
 
 no_mention = AllowedMentions(users=False, roles=False, everyone=False)
@@ -476,7 +475,7 @@ async def info(ctx, idMT: MTid = None):
     #desc = f"Membre n° {str(idMT)}{spacing*' ' }Rang : {Infos[6]}{spacing*' '}Top {Infos[8]}{spacing*' '}<:gold:836978754454028338> : {Infos[9]} <:silver:836978754433319002> : {Infos[10]} <:bronze:836978754467135519> : {Infos[11]} <:mh:836978314387259442> : {Infos[12]}"
     desc = "Membre n°"+str(idMT)+3*' '+"Rang : "+Infos[6]+"  Top  "+Infos[8]+(7-len(Infos[6]+Infos[8]))*' ' +" <:gold:836978754454028338> : "+Infos[9]+" <:silver:836978754433319002> : "+Infos[10]+" <:bronze:836978754467135519> : "+Infos[11]+" <:mh:836978314387259442> : "+Infos[12]
     
-    embed = Embed(title=f"{Infos[0]} - {Infos[1]} :flag_{country}:", url=url, description=desc, color=int(soup.find('td').find_all('span')[-1]['style'].split('#')[1].split(';')[0], 16))
+    embed = Embed(title=f"{Infos[0]} - {Infos[1]} :flag_{country}:", url=url, description=desc, color=colors[Infos[1]])
     embed.add_field(name="Score : ", value=Infos[4], inline=True)
     embed.add_field(name="Exercices résolus : ", value=''.join(Infos[14].split()), inline=True)
     embed.add_field(name="Problèmes résolus : ", value=''.join(Infos[16].split()), inline=True)
