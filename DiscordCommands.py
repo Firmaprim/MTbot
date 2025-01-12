@@ -745,15 +745,19 @@ async def task():
     liste = []
 
     table = soup.find("table")
+
+    jour = soup.find_all('div', attrs={"class":u"text-center mb-3"},limit=1)[0].find_all('b')[0]
+    
     for resolution in table.find_all("tr"):
         elements = resolution.find_all("td")
+        heure = elements[0]
         
-        this_date = datetime.datetime.strptime(elements[0].decode_contents() + " " + elements[1].decode_contents().replace("h", ":"), '%d/%m/%y %H:%M')
+        this_date = datetime.datetime.strptime(jour.decode_contents() + " " + heure.decode_contents().replace("h", ":"), '%d/%m/%y %H:%M')
         if this_date >= last_submission_date: continue
         if this_date < loop_until: break
 
-        user = elements[2].find("a")["href"].split("/")[-1]
-        probleme = elements[5].contents[-1].strip()[1:]
+        user = elements[1].find("a")["href"].split("/")[-1]
+        probleme = elements[4].contents[-1].strip()[1:]
 
         discordUser = FindMT(user)
         if not discordUser: continue # on affiche que les utilisateurs du discord MT
