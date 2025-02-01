@@ -748,7 +748,7 @@ async def task():
 
     jour = soup.find_all('p', attrs={"class":u"text-center pt-1"},limit=1)[0].find_all('b')[0]
     
-    for resolution in table.find_all("tr"):
+    for resolution in table.find_all('tr', attrs={"style":u"border-top-width:1px;"}):
         elements = resolution.find_all("td")
         heure = elements[0]
         
