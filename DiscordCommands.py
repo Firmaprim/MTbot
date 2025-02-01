@@ -746,7 +746,7 @@ async def task():
 
     table = soup.find("table")
 
-    jour = soup.find_all('div', attrs={"class":u"text-center mb-3"},limit=1)[0].find_all('b')[0]
+    jour = soup.find_all('p', attrs={"class":u"text-center pt-1"},limit=1)[0].find_all('b')[0]
     
     for resolution in table.find_all("tr"):
         elements = resolution.find_all("td")
